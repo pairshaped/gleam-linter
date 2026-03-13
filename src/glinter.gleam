@@ -12,7 +12,12 @@ import glinter/rule.{type Rule}
 import glinter/rules/assert_ok_pattern
 import glinter/rules/avoid_panic
 import glinter/rules/avoid_todo
+import glinter/rules/discarded_result
 import glinter/rules/echo_rule
+import glinter/rules/redundant_case
+import glinter/rules/short_variable_name
+import glinter/rules/unnecessary_variable
+import glinter/rules/unwrap_used
 import glinter/walker
 import simplifile
 
@@ -27,6 +32,11 @@ pub fn main() {
     avoid_todo.rule(),
     echo_rule.rule(),
     assert_ok_pattern.rule(),
+    discarded_result.rule(),
+    short_variable_name.rule(),
+    unnecessary_variable.rule(),
+    redundant_case.rule(),
+    unwrap_used.rule(),
   ]
   let rules = apply_config(all_rules, cfg)
 

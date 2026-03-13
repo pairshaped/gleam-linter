@@ -161,9 +161,9 @@ fn walk_expression(expr: Expression, rules: List(Rule)) -> List(LintResult) {
     glance.NegateBool(_, inner) -> walk_expression(inner, rules)
 
     glance.BinaryOperator(_, _, left, right) -> {
-      let l = walk_expression(left, rules)
-      let r = walk_expression(right, rules)
-      list.append(l, r)
+      let left_results = walk_expression(left, rules)
+      let right_results = walk_expression(right, rules)
+      list.append(left_results, right_results)
     }
 
     glance.FnCapture(_, _, function, args_before, args_after) -> {

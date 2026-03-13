@@ -6,6 +6,11 @@ avoid_panic = "error"
 avoid_todo = "error"
 echo = "warning"
 assert_ok_pattern = "warning"
+discarded_result = "warning"
+short_variable_name = "warning"
+unnecessary_variable = "warning"
+redundant_case = "warning"
+unwrap_used = "warning"
 
 # Ignore rules for specific file patterns
 # [ignore]
