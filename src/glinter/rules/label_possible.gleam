@@ -20,25 +20,21 @@ fn check(func: glance.Function) -> List(rule.LintResult) {
     False -> []
     True ->
       params
-      |> list.filter_map(fn(param) {
-        case param.label {
-          Some(_) -> Error(Nil)
-          None -> {
-            let name = case param.name {
-              glance.Named(n) -> n
-              glance.Discarded(n) -> "_" <> n
-            }
-            Ok(LintResult(
-              rule: "label_possible",
-              severity: Warning,
-              file: "",
-              location: func.location,
-              message: "Parameter '"
-                <> name
-                <> "' could benefit from a label for clarity at call sites",
-            ))
-          }
+      |> list.filter(fn(param) { param.label == None })
+      |> list.map(fn(param) {
+        let name = case param.name {
+          glance.Named(n) -> n
+          glance.Discarded(n) -> "_" <> n
         }
+        LintResult(
+          rule: "label_possible",
+          severity: Warning,
+          file: "",
+          location: func.location,
+          message: "Parameter '"
+            <> name
+            <> "' could benefit from a label for clarity at call sites",
+        )
       })
   }
 }

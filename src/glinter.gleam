@@ -22,6 +22,8 @@ import glinter/rules/redundant_case
 import glinter/rules/short_variable_name
 import glinter/rules/unnecessary_variable
 import glinter/rules/unwrap_used
+import glinter/rules/label_possible
+import glinter/rules/missing_labels
 import glinter/walker
 import simplifile
 
@@ -45,6 +47,8 @@ pub fn main() {
     function_complexity.rule(),
     module_complexity.rule(),
     prefer_guard_clause.rule(),
+    label_possible.rule(),
+    missing_labels.rule(),
   ]
   let rules = apply_config(all_rules, cfg)
 
