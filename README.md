@@ -138,7 +138,36 @@ src/app.gleam:25: [warning] echo: Use of 'echo' is discouraged
 gleam run -m glinter --format json
 ```
 
-Returns a JSON array of issues with file path, line, column, rule, severity, and message.
+```json
+{
+  "results": [
+    {
+      "rule": "avoid_panic",
+      "severity": "error",
+      "file": "src/app.gleam",
+      "line": 12,
+      "message": "Use of 'panic' is discouraged"
+    }
+  ],
+  "summary": {
+    "total": 1,
+    "errors": 1,
+    "warnings": 0
+  }
+}
+```
+
+When `--stats` is enabled, a `stats` object is included:
+
+```json
+{
+  "stats": {
+    "files": 23,
+    "lines": 2544,
+    "elapsed_ms": 45
+  }
+}
+```
 
 ## Running Tests
 
