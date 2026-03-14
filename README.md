@@ -97,6 +97,7 @@ Configuration lives in your project's `gleam.toml` under the `[tools.glinter]` k
 ```toml
 [tools.glinter]
 stats = true  # show file count, line count, and timing after each run
+exclude = ["src/server/sql.gleam"]  # skip generated files entirely
 
 [tools.glinter.rules]
 avoid_panic = "error"
@@ -121,13 +122,23 @@ todo_without_message = "warning"
 
 Each rule can be set to `"error"`, `"warning"`, or `"off"`.
 
+### Excluding Files
+
+Skip files entirely (useful for generated code). Supports globs:
+
+```toml
+[tools.glinter]
+exclude = ["src/server/sql.gleam", "src/generated/**/*.gleam"]
+```
+
 ### Ignoring Rules Per File
 
-Suppress specific rules for files where they don't make sense:
+Suppress specific rules for files where they don't make sense. Also supports globs:
 
 ```toml
 [tools.glinter.ignore]
 "src/my_complex_module.gleam" = ["deep_nesting", "function_complexity"]
+"test/**/*.gleam" = ["avoid_todo"]
 ```
 
 ## Output Formats

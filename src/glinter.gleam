@@ -65,6 +65,7 @@ pub fn main() {
   let files =
     discover_files(paths)
     |> list.map(fn(f) { strip_prefix(f, project_prefix) })
+    |> list.filter(fn(f) { !ignore.is_file_excluded(f, cfg.exclude) })
 
   let #(rev_results, rev_sources) =
     files

@@ -2,6 +2,13 @@ import gleam/dict.{type Dict}
 import gleam/list
 import gleam/string
 
+pub fn is_file_excluded(
+  file: String,
+  exclude: List(String),
+) -> Bool {
+  list.any(exclude, fn(pattern) { glob_matches(file, pattern) })
+}
+
 pub fn is_rule_ignored(
   file: String,
   rule_name: String,

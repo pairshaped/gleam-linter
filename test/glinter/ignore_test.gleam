@@ -48,3 +48,28 @@ pub fn empty_ignores_test() {
   ignore.is_rule_ignored("src/foo.gleam", "avoid_panic", dict.new())
   |> should.equal(False)
 }
+
+// --- is_file_excluded tests ---
+
+pub fn excludes_exact_file_test() {
+  let exclude = ["src/server/sql.gleam"]
+  ignore.is_file_excluded("src/server/sql.gleam", exclude)
+  |> should.equal(True)
+}
+
+pub fn excludes_glob_pattern_test() {
+  let exclude = ["src/generated/**/*.gleam"]
+  ignore.is_file_excluded("src/generated/deep/file.gleam", exclude)
+  |> should.equal(True)
+}
+
+pub fn does_not_exclude_non_matching_test() {
+  let exclude = ["src/generated/**/*.gleam"]
+  ignore.is_file_excluded("src/server/app.gleam", exclude)
+  |> should.equal(False)
+}
+
+pub fn empty_exclude_list_test() {
+  ignore.is_file_excluded("src/foo.gleam", [])
+  |> should.equal(False)
+}
