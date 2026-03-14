@@ -86,3 +86,17 @@ pub fn parse_stats_defaults_to_false_test() {
   let assert Ok(c) = config.parse("")
   c.stats |> should.equal(False)
 }
+
+pub fn parse_include_test() {
+  let toml =
+    "[tools.glinter]
+include = [\"src/\", \"test/\"]
+"
+  let assert Ok(c) = config.parse(toml)
+  c.include |> should.equal(["src/", "test/"])
+}
+
+pub fn parse_include_defaults_to_empty_test() {
+  let assert Ok(c) = config.parse("")
+  c.include |> should.equal([])
+}

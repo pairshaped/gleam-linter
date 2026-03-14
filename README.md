@@ -97,6 +97,7 @@ Configuration lives in your project's `gleam.toml` under the `[tools.glinter]` k
 ```toml
 [tools.glinter]
 stats = true  # show file count, line count, and timing after each run
+include = ["src/", "test/"]  # directories to lint (default: ["src/"])
 exclude = ["src/server/sql.gleam"]  # skip generated files entirely
 
 [tools.glinter.rules]

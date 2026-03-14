@@ -60,10 +60,21 @@ pub fn main() {
   ]
   let rules = apply_config(all_rules, cfg)
 
+  // Resolve paths: CLI args > config include > default src/
+  let effective_paths = case paths {
+    [] ->
+      case cfg.include {
+        [] -> [project_prefix <> "src/"]
+        dirs ->
+          list.map(dirs, fn(d) { project_prefix <> d })
+      }
+    _ -> paths
+  }
+
   // Discover files (absolute paths), then make relative for ignore matching
   // and cleaner output
   let files =
-    discover_files(paths)
+    discover_files(effective_paths)
     |> list.map(fn(f) { strip_prefix(f, project_prefix) })
     |> list.filter(fn(f) { !ignore.is_file_excluded(f, cfg.exclude) })
 
@@ -125,33 +136,28 @@ fn parse_args(
   let #(format, project_dir, show_stats, paths) =
     parse_args_loop(args, Text, None, False, [])
 
-  case project_dir {
-    Some(dir) -> {
-      let prefix = case string.ends_with(dir, "/") {
+  let prefix = case project_dir {
+    Some(dir) ->
+      case string.ends_with(dir, "/") {
         True -> dir
         False -> dir <> "/"
       }
-      let resolved_paths = case paths {
-        [] -> [prefix <> "src/"]
-        _ ->
-          list.reverse(paths)
-          |> list.map(fn(p) {
-            case string.starts_with(p, "/") {
-              True -> p
-              False -> prefix <> p
-            }
-          })
-      }
-      #(format, prefix, show_stats, resolved_paths)
-    }
-    None -> {
-      let resolved_paths = case paths {
-        [] -> ["src/"]
-        _ -> list.reverse(paths)
-      }
-      #(format, "", show_stats, resolved_paths)
-    }
+    None -> ""
   }
+
+  let resolved_paths = case paths {
+    [] -> []
+    _ ->
+      list.reverse(paths)
+      |> list.map(fn(p) {
+        case string.starts_with(p, "/") || prefix == "" {
+          True -> p
+          False -> prefix <> p
+        }
+      })
+  }
+
+  #(format, prefix, show_stats, resolved_paths)
 }
 
 fn parse_args_loop(

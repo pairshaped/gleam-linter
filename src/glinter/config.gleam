@@ -12,13 +12,20 @@ pub type Config {
   Config(
     rules: Dict(String, Option(SeverityOverride)),
     ignore: Dict(String, List(String)),
+    include: List(String),
     exclude: List(String),
     stats: Bool,
   )
 }
 
 pub fn default() -> Config {
-  Config(rules: dict.new(), ignore: dict.new(), exclude: [], stats: False)
+  Config(
+    rules: dict.new(),
+    ignore: dict.new(),
+    include: [],
+    exclude: [],
+    stats: False,
+  )
 }
 
 pub fn parse(toml_string: String) -> Result(Config, String) {
@@ -27,9 +34,16 @@ pub fn parse(toml_string: String) -> Result(Config, String) {
     Ok(parsed) -> {
       let rules = parse_rules(parsed)
       let ignore = parse_ignore(parsed)
+      let include = parse_include(parsed)
       let exclude = parse_exclude(parsed)
       let stats = parse_stats(parsed)
-      Ok(Config(rules: rules, ignore: ignore, exclude: exclude, stats: stats))
+      Ok(Config(
+        rules: rules,
+        ignore: ignore,
+        include: include,
+        exclude: exclude,
+        stats: stats,
+      ))
     }
   }
 }
@@ -64,6 +78,20 @@ fn parse_stats(parsed: Dict(String, tom.Toml)) -> Bool {
   case tom.get_bool(parsed, ["tools", "glinter", "stats"]) {
     Ok(value) -> value
     Error(_) -> False
+  }
+}
+
+fn parse_include(parsed: Dict(String, tom.Toml)) -> List(String) {
+  case tom.get_array(parsed, ["tools", "glinter", "include"]) {
+    Error(_) -> []
+    Ok(items) ->
+      items
+      |> list.filter_map(fn(item) {
+        case item {
+          tom.String(s) -> Ok(s)
+          _ -> Error(Nil)
+        }
+      })
   }
 }
 
