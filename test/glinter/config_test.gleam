@@ -11,7 +11,7 @@ pub fn parse_empty_config_test() {
 
 pub fn parse_rules_section_test() {
   let toml =
-    "[rules]
+    "[tools.glinter.rules]
 avoid_panic = \"error\"
 echo = \"off\"
 "
@@ -23,7 +23,7 @@ echo = \"off\"
 
 pub fn parse_warning_severity_test() {
   let toml =
-    "[rules]
+    "[tools.glinter.rules]
 echo = \"warning\"
 "
   let assert Ok(c) = config.parse(toml)
@@ -33,12 +33,28 @@ echo = \"warning\"
 
 pub fn parse_ignore_section_test() {
   let toml =
-    "[ignore]
+    "[tools.glinter.ignore]
 \"test/**/*.gleam\" = [\"avoid_panic\", \"echo\"]
 "
   let assert Ok(c) = config.parse(toml)
   dict.get(c.ignore, "test/**/*.gleam")
   |> should.equal(Ok(["avoid_panic", "echo"]))
+}
+
+pub fn parse_gleam_toml_with_other_sections_test() {
+  let toml =
+    "name = \"myapp\"
+version = \"1.0.0\"
+
+[dependencies]
+gleam_stdlib = \">= 0.44.0\"
+
+[tools.glinter.rules]
+echo = \"error\"
+"
+  let assert Ok(c) = config.parse(toml)
+  dict.get(c.rules, "echo")
+  |> should.equal(Ok(Some(config.SeverityError)))
 }
 
 pub fn default_config_test() {

@@ -31,9 +31,9 @@ import simplifile
 pub fn main() {
   let start_time = monotonic_time_ms()
   let args = argv.load().arguments
-  let #(format, config_path, project_prefix, show_stats, paths) =
-    parse_args(args)
+  let #(format, project_prefix, show_stats, paths) = parse_args(args)
 
+  let config_path = project_prefix <> "gleam.toml"
   let cfg = load_config(config_path)
 
   let all_rules = [
@@ -115,19 +115,15 @@ fn count_lines(sources: List(#(String, String))) -> Int {
 /// project_prefix is "" when no --project is given, or "dir/" when it is.
 fn parse_args(
   args: List(String),
-) -> #(reporter.Format, String, String, Bool, List(String)) {
-  let #(format, config_path, project_dir, show_stats, paths) =
-    parse_args_loop(args, Text, "glinter.toml", None, False, [])
+) -> #(reporter.Format, String, Bool, List(String)) {
+  let #(format, project_dir, show_stats, paths) =
+    parse_args_loop(args, Text, None, False, [])
 
   case project_dir {
     Some(dir) -> {
       let prefix = case string.ends_with(dir, "/") {
         True -> dir
         False -> dir <> "/"
-      }
-      let resolved_config = case config_path {
-        "glinter.toml" -> prefix <> "glinter.toml"
-        other -> other
       }
       let resolved_paths = case paths {
         [] -> [prefix <> "src/"]
@@ -140,14 +136,14 @@ fn parse_args(
             }
           })
       }
-      #(format, resolved_config, prefix, show_stats, resolved_paths)
+      #(format, prefix, show_stats, resolved_paths)
     }
     None -> {
       let resolved_paths = case paths {
         [] -> ["src/"]
         _ -> list.reverse(paths)
       }
-      #(format, config_path, "", show_stats, resolved_paths)
+      #(format, "", show_stats, resolved_paths)
     }
   }
 }
@@ -155,28 +151,22 @@ fn parse_args(
 fn parse_args_loop(
   args: List(String),
   format: reporter.Format,
-  config_path: String,
   project_dir: option.Option(String),
   show_stats: Bool,
   paths: List(String),
-) -> #(reporter.Format, String, option.Option(String), Bool, List(String)) {
+) -> #(reporter.Format, option.Option(String), Bool, List(String)) {
   case args {
-    [] -> #(format, config_path, project_dir, show_stats, paths)
+    [] -> #(format, project_dir, show_stats, paths)
     ["--format", "json", ..rest] ->
-      parse_args_loop(rest, Json, config_path, project_dir, show_stats, paths)
+      parse_args_loop(rest, Json, project_dir, show_stats, paths)
     ["--format", "text", ..rest] ->
-      parse_args_loop(rest, Text, config_path, project_dir, show_stats, paths)
-    ["--config", path, ..rest] ->
-      parse_args_loop(rest, format, path, project_dir, show_stats, paths)
+      parse_args_loop(rest, Text, project_dir, show_stats, paths)
     ["--project", dir, ..rest] ->
-      parse_args_loop(rest, format, config_path, Some(dir), show_stats, paths)
+      parse_args_loop(rest, format, Some(dir), show_stats, paths)
     ["--stats", ..rest] ->
-      parse_args_loop(rest, format, config_path, project_dir, True, paths)
+      parse_args_loop(rest, format, project_dir, True, paths)
     [path, ..rest] ->
-      parse_args_loop(rest, format, config_path, project_dir, show_stats, [
-        path,
-        ..paths
-      ])
+      parse_args_loop(rest, format, project_dir, show_stats, [path, ..paths])
   }
 }
 

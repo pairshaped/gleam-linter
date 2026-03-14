@@ -33,7 +33,7 @@ pub fn parse(toml_string: String) -> Result(Config, String) {
 fn parse_rules(
   parsed: Dict(String, tom.Toml),
 ) -> Dict(String, Option(SeverityOverride)) {
-  case tom.get_table(parsed, ["rules"]) {
+  case tom.get_table(parsed, ["tools", "glinter", "rules"]) {
     Error(_) -> dict.new()
     Ok(rules_table) -> {
       rules_table
@@ -59,7 +59,7 @@ fn parse_rules(
 fn parse_ignore(
   parsed: Dict(String, tom.Toml),
 ) -> Dict(String, List(String)) {
-  case tom.get_table(parsed, ["ignore"]) {
+  case tom.get_table(parsed, ["tools", "glinter", "ignore"]) {
     Error(_) -> dict.new()
     Ok(ignore_table) -> {
       ignore_table

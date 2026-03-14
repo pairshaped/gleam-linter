@@ -22,10 +22,10 @@ gleam run -m glinter src/myapp/ test/
 # JSON output
 gleam run -m glinter --format json
 
-# Custom config file
-gleam run -m glinter --config my_config.toml
+# Show stats (files, lines, timing)
+gleam run -m glinter --stats
 
-# Lint a different project (resolves config and paths relative to project dir)
+# Lint a different project (resolves gleam.toml and paths relative to project dir)
 gleam run -m glinter --project /path/to/my/project server/src shared/src
 ```
 
@@ -76,10 +76,10 @@ The exit code is `1` if any issues are found, `0` otherwise.
 
 ## Configuration
 
-Create a `glinter.toml` file in your project root:
+Configuration lives in your project's `gleam.toml` under the `[tools.glinter]` key:
 
 ```toml
-[rules]
+[tools.glinter.rules]
 avoid_panic = "error"
 avoid_todo = "error"
 echo = "warning"
@@ -105,7 +105,7 @@ Each rule can be set to `"error"`, `"warning"`, or `"off"`.
 Suppress specific rules for files where they don't make sense:
 
 ```toml
-[ignore]
+[tools.glinter.ignore]
 "src/my_complex_module.gleam" = ["deep_nesting", "function_complexity"]
 ```
 
