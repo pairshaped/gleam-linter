@@ -24,6 +24,7 @@ import glinter/rules/unnecessary_variable
 import glinter/rules/unwrap_used
 import glinter/rules/label_possible
 import glinter/rules/missing_labels
+import glinter/unused_exports
 import glinter/walker
 import simplifile
 
@@ -73,8 +74,13 @@ pub fn main() {
         Error(_) -> acc
       }
     })
-  let results = list.reverse(rev_results)
+  let per_file_results = list.reverse(rev_results)
   let sources = list.reverse(rev_sources)
+
+  // Cross-module: unused exports detection
+  let unused_export_results =
+    run_unused_exports(sources, project_prefix, cfg)
+  let results = list.append(per_file_results, unused_export_results)
 
   let output = case format {
     Text -> reporter.format_text(results, sources)
@@ -247,6 +253,68 @@ fn strip_prefix(path: String, prefix: String) -> String {
         True -> string.drop_start(path, string.length(prefix))
         False -> path
       }
+  }
+}
+
+/// Convert a file path like "src/myapp/users.gleam" to module path "myapp/users"
+fn file_path_to_module_path(path: String) -> String {
+  path
+  |> string.replace(".gleam", "")
+  |> string.split("/")
+  |> list.drop(1)
+  |> string.join("/")
+}
+
+/// Run unused exports detection as a cross-module pass.
+fn run_unused_exports(
+  sources: List(#(String, String)),
+  project_prefix: String,
+  cfg: config.Config,
+) -> List(rule.LintResult) {
+  // Check if rule is enabled
+  let severity = case dict.get(cfg.rules, "unused_exports") {
+    Ok(None) -> Error(Nil)
+    Ok(Some(config.SeverityError)) -> Ok(rule.Error)
+    Ok(Some(config.SeverityWarning)) -> Ok(rule.Warning)
+    Error(_) -> Ok(rule.Warning)
+  }
+
+  case severity {
+    Error(_) -> []
+    Ok(sev) -> {
+      // Build src file tuples: #(display_path, module_path, source)
+      let src_files =
+        sources
+        |> list.map(fn(s) {
+          let #(file_path, source) = s
+          #(file_path, file_path_to_module_path(file_path), source)
+        })
+
+      // Discover test files as additional consumers
+      let test_dir = project_prefix <> "test/"
+      let test_files = case simplifile.is_directory(test_dir) {
+        Ok(True) ->
+          discover_files([test_dir])
+          |> list.filter_map(fn(abs_path) {
+            let rel_path = strip_prefix(abs_path, project_prefix)
+            case simplifile.read(abs_path) {
+              Ok(source) ->
+                Ok(#(
+                  rel_path,
+                  file_path_to_module_path(rel_path),
+                  source,
+                ))
+              Error(_) -> Error(Nil)
+            }
+          })
+        _ -> []
+      }
+
+      unused_exports.check_unused_exports(src_files, test_files, sev)
+      |> list.filter(fn(r) {
+        !ignore.is_rule_ignored(r.file, "unused_exports", cfg.ignore)
+      })
+    }
   }
 }
 

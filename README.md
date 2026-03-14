@@ -68,6 +68,12 @@ The exit code is `1` if any issues are found, `0` otherwise.
 | `label_possible` | warning | Flags unlabeled parameters in functions with 2+ parameters |
 | `missing_labels` | warning | Flags calls to same-module functions that omit defined labels |
 
+### Cross-Module
+
+| Rule | Default | Description |
+|------|---------|-------------|
+| `unused_exports` | warning | Flags `pub` functions, constants, and types never referenced from another module. Uses cross-module import graph analysis — test files count as consumers, `main` is excluded. |
+
 ## Configuration
 
 Create a `gleam_lint.toml` file in your project root:
@@ -89,6 +95,7 @@ module_complexity = "warning"
 prefer_guard_clause = "warning"
 missing_labels = "warning"
 label_possible = "warning"
+unused_exports = "warning"
 ```
 
 Each rule can be set to `"error"`, `"warning"`, or `"off"`.
@@ -118,10 +125,6 @@ gleam run -m glinter --format json
 ```
 
 Returns a JSON array of issues with file path, line, column, rule, severity, and message.
-
-## Roadmap
-
-- **Unused exports** — detect `pub` functions, constants, and types with no inbound references across the project. Requires cross-module import graph analysis (unlike existing rules which are per-file AST checks).
 
 ## Running Tests
 

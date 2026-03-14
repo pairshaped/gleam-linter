@@ -17,6 +17,7 @@ module_complexity = "warning"
 prefer_guard_clause = "warning"
 missing_labels = "warning"
 label_possible = "warning"
+unused_exports = "warning"
 
 # Ignore rules for specific file patterns
 # AST traversal code is inherently complex — suppress complexity warnings
@@ -30,3 +31,4 @@ label_possible = "warning"
 "src/glinter/rules/deep_nesting.gleam" = ["deep_nesting", "function_complexity", "label_possible"]
 "src/glinter/rules/missing_labels.gleam" = ["deep_nesting", "function_complexity", "label_possible", "prefer_guard_clause"]
 "src/glinter/rules/prefer_guard_clause.gleam" = ["label_possible"]
+"src/glinter/unused_exports.gleam" = ["deep_nesting", "function_complexity", "module_complexity", "label_possible"]

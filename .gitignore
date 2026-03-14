@@ -3,3 +3,4 @@
 *.ez
 /build
 erl_crash.dump
+docs/
