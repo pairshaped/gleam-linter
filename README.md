@@ -90,7 +90,7 @@ done
 
 ### Imports
 
-- **unqualified_import** (warning): flags unqualified value imports (e.g. `import mod.{func}`). Gleam convention is to use qualified access (`mod.func`). Type imports (`import mod.{type MyType}`) are not flagged.
+- **unqualified_import** (warning): flags unqualified function/constant imports (e.g. `import mod.{func}`). Gleam convention is to use qualified access (`mod.func`). Constructor imports (`Some`, `None`, `Ok`, etc.) and type imports are not flagged.
 - **duplicate_import** (warning): flags importing the same module more than once in a file
 
 ### Cross-Module
@@ -150,7 +150,7 @@ Suppress specific rules for files where they don't make sense. Also supports glo
 ```toml
 [tools.glinter.ignore]
 "src/my_complex_module.gleam" = ["deep_nesting", "function_complexity"]
-"test/**/*.gleam" = ["assert_ok_pattern", "short_variable_name", "missing_type_annotation", "label_possible", "missing_labels"]
+"test/**/*.gleam" = ["assert_ok_pattern", "short_variable_name", "missing_type_annotation", "label_possible", "missing_labels", "unqualified_import"]
 ```
 
 ## Output Formats

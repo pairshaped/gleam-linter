@@ -22,11 +22,11 @@ pub fn detects_unqualified_function_import_test() {
   result.rule |> should.equal("unqualified_import")
   result.message
   |> should.equal(
-    "Value 'map' is imported unqualified from 'gleam/list', use qualified access instead",
+    "Function 'map' is imported unqualified from 'gleam/list', use qualified access instead",
   )
 }
 
-pub fn detects_multiple_unqualified_imports_test() {
+pub fn detects_multiple_unqualified_function_imports_test() {
   let results = lint_string("import gleam/list.{map, filter, fold}")
   list.length(results) |> should.equal(3)
 }
@@ -41,14 +41,26 @@ pub fn ignores_unqualified_type_import_test() {
   list.length(results) |> should.equal(0)
 }
 
-pub fn flags_values_but_not_types_test() {
+pub fn ignores_constructor_imports_test() {
   let results =
     lint_string("import gleam/option.{type Option, None, Some}")
-  // None and Some are values (constructors), type Option is fine
-  list.length(results) |> should.equal(2)
+  // Constructors (PascalCase) are fine, only functions/constants flagged
+  list.length(results) |> should.equal(0)
 }
 
 pub fn ignores_aliased_import_test() {
   let results = lint_string("import gleam/list as l")
   list.length(results) |> should.equal(0)
+}
+
+pub fn mixed_constructors_and_functions_test() {
+  let results =
+    lint_string("import gleam/option.{type Option, None, Some, unwrap}")
+  // Only unwrap (lowercase) is flagged
+  list.length(results) |> should.equal(1)
+  let assert [result] = results
+  result.message
+  |> should.equal(
+    "Function 'unwrap' is imported unqualified from 'gleam/option', use qualified access instead",
+  )
 }
