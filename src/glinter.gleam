@@ -29,7 +29,7 @@ import simplifile
 
 pub fn main() {
   let args = argv.load().arguments
-  let #(format, config_path, paths) = parse_args(args)
+  let #(format, config_path, project_prefix, paths) = parse_args(args)
 
   let cfg = load_config(config_path)
 
@@ -52,13 +52,19 @@ pub fn main() {
   ]
   let rules = apply_config(all_rules, cfg)
 
-  let files = discover_files(paths)
+  // Discover files (absolute paths), then make relative for ignore matching
+  // and cleaner output
+  let files =
+    discover_files(paths)
+    |> list.map(fn(f) { strip_prefix(f, project_prefix) })
 
   let #(rev_results, rev_sources) =
     files
     |> list.fold(#([], []), fn(acc, file_path) {
       let #(acc_results, acc_sources) = acc
-      case lint_file(file_path, rules, cfg) {
+      // Read from the absolute path, but use relative path for reporting
+      let read_path = project_prefix <> file_path
+      case lint_file(read_path, file_path, rules, cfg) {
         Ok(#(file_results, source)) ->
           #(
             list.append(list.reverse(file_results), acc_results),
@@ -83,34 +89,66 @@ pub fn main() {
   }
 }
 
+/// Parse CLI arguments into (format, config_path, project_prefix, paths).
+/// project_prefix is "" when no --project is given, or "dir/" when it is.
 fn parse_args(
   args: List(String),
-) -> #(reporter.Format, String, List(String)) {
-  parse_args_loop(args, Text, "gleam_lint.toml", [])
+) -> #(reporter.Format, String, String, List(String)) {
+  let #(format, config_path, project_dir, paths) =
+    parse_args_loop(args, Text, "gleam_lint.toml", None, [])
+
+  case project_dir {
+    Some(dir) -> {
+      let prefix = case string.ends_with(dir, "/") {
+        True -> dir
+        False -> dir <> "/"
+      }
+      let resolved_config = case config_path {
+        "gleam_lint.toml" -> prefix <> "gleam_lint.toml"
+        other -> other
+      }
+      let resolved_paths = case paths {
+        [] -> [prefix <> "src/"]
+        _ ->
+          list.reverse(paths)
+          |> list.map(fn(p) {
+            case string.starts_with(p, "/") {
+              True -> p
+              False -> prefix <> p
+            }
+          })
+      }
+      #(format, resolved_config, prefix, resolved_paths)
+    }
+    None -> {
+      let resolved_paths = case paths {
+        [] -> ["src/"]
+        _ -> list.reverse(paths)
+      }
+      #(format, config_path, "", resolved_paths)
+    }
+  }
 }
 
 fn parse_args_loop(
   args: List(String),
   format: reporter.Format,
   config_path: String,
+  project_dir: option.Option(String),
   paths: List(String),
-) -> #(reporter.Format, String, List(String)) {
+) -> #(reporter.Format, String, option.Option(String), List(String)) {
   case args {
-    [] -> {
-      let final_paths = case paths {
-        [] -> ["src/"]
-        _ -> list.reverse(paths)
-      }
-      #(format, config_path, final_paths)
-    }
+    [] -> #(format, config_path, project_dir, paths)
     ["--format", "json", ..rest] ->
-      parse_args_loop(rest, Json, config_path, paths)
+      parse_args_loop(rest, Json, config_path, project_dir, paths)
     ["--format", "text", ..rest] ->
-      parse_args_loop(rest, Text, config_path, paths)
+      parse_args_loop(rest, Text, config_path, project_dir, paths)
     ["--config", path, ..rest] ->
-      parse_args_loop(rest, format, path, paths)
+      parse_args_loop(rest, format, path, project_dir, paths)
+    ["--project", dir, ..rest] ->
+      parse_args_loop(rest, format, config_path, Some(dir), paths)
     [path, ..rest] ->
-      parse_args_loop(rest, format, config_path, [path, ..paths])
+      parse_args_loop(rest, format, config_path, project_dir, [path, ..paths])
   }
 }
 
@@ -130,30 +168,32 @@ fn load_config(path: String) -> config.Config {
   }
 }
 
+/// Lint a file. Reads from read_path (absolute), reports as display_path (relative).
 fn lint_file(
-  file_path: String,
+  read_path: String,
+  display_path: String,
   rules: List(Rule),
   cfg: config.Config,
 ) -> Result(#(List(rule.LintResult), String), Nil) {
-  case simplifile.read(file_path) {
+  case simplifile.read(read_path) {
     Error(_) -> {
-      io.println_error("Error: Could not read " <> file_path)
+      io.println_error("Error: Could not read " <> read_path)
       Error(Nil)
     }
     Ok(source) -> {
       let active_rules =
         rules
         |> list.filter(fn(r) {
-          !ignore.is_rule_ignored(file_path, r.name, cfg.ignore)
+          !ignore.is_rule_ignored(display_path, r.name, cfg.ignore)
         })
       case glance.module(source) {
         Error(_) -> {
-          io.println_error("Error: Failed to parse " <> file_path)
+          io.println_error("Error: Failed to parse " <> read_path)
           Error(Nil)
         }
         Ok(module) -> {
           let file_results =
-            walker.walk_module(module, active_rules, source, file_path)
+            walker.walk_module(module, active_rules, source, display_path)
           Ok(#(file_results, source))
         }
       }
@@ -196,6 +236,18 @@ fn discover_files(paths: List(String)) -> List(String) {
     }
   })
   |> list.sort(string.compare)
+}
+
+/// Strip a prefix from a path, returning the relative portion.
+fn strip_prefix(path: String, prefix: String) -> String {
+  case prefix {
+    "" -> path
+    _ ->
+      case string.starts_with(path, prefix) {
+        True -> string.drop_start(path, string.length(prefix))
+        False -> path
+      }
+  }
 }
 
 @external(erlang, "erlang", "halt")

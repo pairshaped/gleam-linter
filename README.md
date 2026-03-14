@@ -24,6 +24,9 @@ gleam run -m glinter --format json
 
 # Custom config file
 gleam run -m glinter --config my_config.toml
+
+# Lint a different project (resolves config and paths relative to project dir)
+gleam run -m glinter --project /path/to/my/project server/src shared/src
 ```
 
 The exit code is `1` if any issues are found, `0` otherwise.
