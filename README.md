@@ -139,7 +139,7 @@ Suppress specific rules for files where they don't make sense. Also supports glo
 ```toml
 [tools.glinter.ignore]
 "src/my_complex_module.gleam" = ["deep_nesting", "function_complexity"]
-"test/**/*.gleam" = ["avoid_todo"]
+"test/**/*.gleam" = ["assert_ok_pattern", "short_variable_name", "missing_type_annotation", "label_possible", "missing_labels"]
 ```
 
 ## Output Formats
