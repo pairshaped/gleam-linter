@@ -26,6 +26,7 @@ import glinter/rules/label_possible
 import glinter/rules/missing_labels
 import glinter/rules/missing_type_annotation
 import glinter/rules/todo_without_message
+import glinter/rules/unqualified_import
 import glinter/unused_exports
 import glinter/walker
 import simplifile
@@ -57,6 +58,7 @@ pub fn main() {
     missing_labels.rule(),
     missing_type_annotation.rule(),
     todo_without_message.rule(),
+    unqualified_import.rule(),
   ]
   let rules = apply_config(all_rules, cfg)
 

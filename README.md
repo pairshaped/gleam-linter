@@ -86,6 +86,10 @@ done
 - **label_possible** (warning): flags unlabeled parameters in functions with 2+ parameters
 - **missing_labels** (warning): flags calls to same-module functions that omit defined labels
 
+### Imports
+
+- **unqualified_import** (warning): flags unqualified value imports (e.g. `import mod.{func}`). Gleam convention is to use qualified access (`mod.func`). Type imports (`import mod.{type MyType}`) are not flagged.
+
 ### Cross-Module
 
 - **unused_exports** (warning): flags `pub` functions, constants, and types never referenced from another module. Test files count as consumers, `main` is excluded.
@@ -119,6 +123,7 @@ label_possible = "warning"
 unused_exports = "warning"
 missing_type_annotation = "warning"
 todo_without_message = "warning"
+unqualified_import = "warning"
 ```
 
 Each rule can be set to `"error"`, `"warning"`, or `"off"`.
@@ -194,6 +199,9 @@ When `--stats` is enabled, a `stats` object is included:
 - **FFI safety lint**: detect use of private Gleam data API internals in JS FFI files (e.g. accessing tuple elements by index or matching on internal constructor representations).
 - **Dynamic SQL detection**: flag string concatenation used to build SQL queries, which risks SQL injection.
 - **Per-directory rule overrides**: apply different rule configs to different directories (e.g. permissive rules for `test/` where `let assert`, short names, and missing labels are idiomatic).
+- **Catch-all pattern detection**: flag `_ ->` in case expressions where exhaustive matching would be safer.
+- **Abbreviation detection**: extend `short_variable_name` to flag common abbreviations (e.g. `req`, `ctx`, `cfg`) beyond single characters.
+- **Check-then-assert detection**: flag patterns like `case is_valid(x) { True -> let assert ... }` where pattern matching would be more idiomatic. Needs stateful traversal.
 
 ## Running Tests
 

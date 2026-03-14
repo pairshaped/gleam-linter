@@ -37,6 +37,7 @@ label_possible = "warning"
 unused_exports = "warning"
 missing_type_annotation = "warning"
 todo_without_message = "warning"
+unqualified_import = "warning"
 
 # Ignore rules for specific file patterns
 # AST traversal code is inherently complex — suppress complexity warnings
