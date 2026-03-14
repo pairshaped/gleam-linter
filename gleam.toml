@@ -1,6 +1,6 @@
 name = "glinter"
-version = "2.0.0"
-description = "A linter for the Gleam programming language with 19 configurable rules"
+version = "2.0.1"
+description = "A linter for the Gleam programming language with 18 configurable rules"
 licences = ["MIT"]
 repository = { type = "github", user = "pairshaped", repo = "glinter" }
 
@@ -36,7 +36,6 @@ missing_labels = "warning"
 label_possible = "warning"
 unused_exports = "warning"
 missing_type_annotation = "warning"
-large_tuple = "warning"
 todo_without_message = "warning"
 
 # Ignore rules for specific file patterns

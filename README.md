@@ -62,7 +62,6 @@ done
 - **assert_ok_pattern** (warning): flags `let assert` assignments
 - **unwrap_used** (warning): flags `result.unwrap`, `option.unwrap`, and lazy variants
 - **todo_without_message** (warning): flags `todo` without a descriptive message
-- **large_tuple** (warning): flags tuples with more than 3 elements (use a custom type instead)
 
 ### Type Annotations
 
@@ -117,7 +116,6 @@ missing_labels = "warning"
 label_possible = "warning"
 unused_exports = "warning"
 missing_type_annotation = "warning"
-large_tuple = "warning"
 todo_without_message = "warning"
 ```
 
