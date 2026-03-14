@@ -5,9 +5,7 @@ A linter for the [Gleam](https://gleam.run) programming language. It parses Glea
 ## Installation
 
 ```sh
-git clone https://github.com/pairshaped/glinter.git
-cd glinter
-gleam build
+gleam add --dev glinter
 ```
 
 ## Usage
