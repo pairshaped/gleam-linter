@@ -35,6 +35,7 @@ pub fn main() {
 
   let config_path = project_prefix <> "gleam.toml"
   let cfg = load_config(config_path)
+  let show_stats = show_stats || cfg.stats
 
   let all_rules = [
     avoid_panic.rule(),

@@ -61,4 +61,28 @@ pub fn default_config_test() {
   let c = config.default()
   dict.size(c.rules) |> should.equal(0)
   dict.size(c.ignore) |> should.equal(0)
+  c.stats |> should.equal(False)
+}
+
+pub fn parse_stats_enabled_test() {
+  let toml =
+    "[tools.glinter]
+stats = true
+"
+  let assert Ok(c) = config.parse(toml)
+  c.stats |> should.equal(True)
+}
+
+pub fn parse_stats_disabled_test() {
+  let toml =
+    "[tools.glinter]
+stats = false
+"
+  let assert Ok(c) = config.parse(toml)
+  c.stats |> should.equal(False)
+}
+
+pub fn parse_stats_defaults_to_false_test() {
+  let assert Ok(c) = config.parse("")
+  c.stats |> should.equal(False)
 }

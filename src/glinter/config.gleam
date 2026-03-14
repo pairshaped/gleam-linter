@@ -12,11 +12,12 @@ pub type Config {
   Config(
     rules: Dict(String, Option(SeverityOverride)),
     ignore: Dict(String, List(String)),
+    stats: Bool,
   )
 }
 
 pub fn default() -> Config {
-  Config(rules: dict.new(), ignore: dict.new())
+  Config(rules: dict.new(), ignore: dict.new(), stats: False)
 }
 
 pub fn parse(toml_string: String) -> Result(Config, String) {
@@ -25,7 +26,8 @@ pub fn parse(toml_string: String) -> Result(Config, String) {
     Ok(parsed) -> {
       let rules = parse_rules(parsed)
       let ignore = parse_ignore(parsed)
-      Ok(Config(rules: rules, ignore: ignore))
+      let stats = parse_stats(parsed)
+      Ok(Config(rules: rules, ignore: ignore, stats: stats))
     }
   }
 }
@@ -53,6 +55,13 @@ fn parse_rules(
       })
       |> dict.from_list()
     }
+  }
+}
+
+fn parse_stats(parsed: Dict(String, tom.Toml)) -> Bool {
+  case tom.get_bool(parsed, ["tools", "glinter", "stats"]) {
+    Ok(value) -> value
+    Error(_) -> False
   }
 }
 
