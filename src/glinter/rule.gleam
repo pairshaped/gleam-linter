@@ -3,6 +3,7 @@ import glance.{type Expression, type Module, type Span, type Statement}
 pub type Severity {
   Error
   Warning
+  Off
 }
 
 /// Result returned by individual rules. Does not include file or severity —

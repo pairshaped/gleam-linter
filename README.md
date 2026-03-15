@@ -81,7 +81,7 @@ done
 
 - **deep_nesting** (warning): flags nesting deeper than 5 levels
 - **function_complexity** (warning): flags functions with more than 10 branching nodes
-- **module_complexity** (warning): flags modules with more than 50 total branching nodes
+- **module_complexity** (off): flags modules with more than 100 total branching nodes. Off by default — [large cohesive modules are idiomatic Gleam](https://gleam.run/documentation/conventions-patterns-and-anti-patterns/#Fragmented-modules). Enable with `module_complexity = "warning"` in config.
 
 ### Labels
 
@@ -119,7 +119,7 @@ redundant_case = "warning"
 unwrap_used = "warning"
 deep_nesting = "warning"
 function_complexity = "warning"
-module_complexity = "warning"
+module_complexity = "off"  # off by default
 prefer_guard_clause = "warning"
 missing_labels = "warning"
 label_possible = "warning"
@@ -201,6 +201,7 @@ When `--stats` is enabled, a `stats` object is included:
 
 ## Roadmap
 
+- **Configurable thresholds**: allow threshold values to be set in `gleam.toml` for rules like `deep_nesting` (default 5), `function_complexity` (default 10), and `module_complexity` (default 100). Example: `deep_nesting = { severity = "warning", threshold = 8 }`.
 - **FFI safety lint**: detect use of private Gleam data API internals in JS FFI files (e.g. accessing tuple elements by index or matching on internal constructor representations).
 - **Dynamic SQL detection**: flag string concatenation used to build SQL queries, which risks SQL injection.
 - **Per-directory rule overrides**: apply different rule configs to different directories (e.g. permissive rules for `test/` where `let assert`, short names, and missing labels are idiomatic).

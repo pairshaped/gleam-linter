@@ -21,21 +21,21 @@ fn make_n_functions(count: Int, cases_each: Int) -> String {
 }
 
 pub fn ignores_module_at_threshold_test() {
-  // 5 functions x 10 cases each = 50
-  let source = make_n_functions(5, 10)
+  // 10 functions x 10 cases each = 100
+  let source = make_n_functions(10, 10)
   let results = test_helpers.lint_string(source, module_complexity.rule())
   let assert True = results == []
 }
 
 pub fn detects_module_over_threshold_test() {
-  // 5 functions x 10 cases + 1 extra = 51
+  // 10 functions x 10 cases + 1 extra = 101
   let source =
-    make_n_functions(5, 10) <> "\n\npub fn extra(x) { case x { _ -> 1 } }"
+    make_n_functions(10, 10) <> "\n\npub fn extra(x) { case x { _ -> 1 } }"
   let results = test_helpers.lint_string(source, module_complexity.rule())
   let assert True = list.length(results) == 1
   let assert [result] = results
   let assert True = result.rule == "module_complexity"
-  let assert True = result.severity == rule.Warning
+  let assert True = result.severity == rule.Off
 }
 
 pub fn ignores_simple_module_test() {

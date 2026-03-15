@@ -201,6 +201,7 @@ fn severity_to_string(severity: Severity) -> String {
   case severity {
     rule.Error -> "error"
     rule.Warning -> "warning"
+    rule.Off -> "off"
   }
 }
 

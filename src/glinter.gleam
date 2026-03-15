@@ -263,13 +263,19 @@ fn lint_file(
 fn apply_config(rules: List(Rule), cfg: config.Config) -> List(Rule) {
   rules
   |> list.filter_map(fn(r) {
-    case dict.get(cfg.rules, r.name) {
-      Ok(None) -> Error(Nil)
+    // Apply config override, or keep default
+    let resolved = case dict.get(cfg.rules, r.name) {
+      Ok(None) -> rule.Rule(..r, default_severity: rule.Off)
       Ok(Some(config.SeverityError)) ->
-        Ok(rule.Rule(..r, default_severity: rule.Error))
+        rule.Rule(..r, default_severity: rule.Error)
       Ok(Some(config.SeverityWarning)) ->
-        Ok(rule.Rule(..r, default_severity: rule.Warning))
-      Error(_) -> Ok(r)
+        rule.Rule(..r, default_severity: rule.Warning)
+      Error(_) -> r
+    }
+    // Filter out Off rules
+    case resolved.default_severity {
+      rule.Off -> Error(Nil)
+      _ -> Ok(resolved)
     }
   })
 }
