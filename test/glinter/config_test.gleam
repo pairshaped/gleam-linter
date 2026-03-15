@@ -1,12 +1,11 @@
 import gleam/dict
 import gleam/option.{None, Some}
-import gleeunit/should
 import glinter/config
 
 pub fn parse_empty_config_test() {
   let assert Ok(c) = config.parse("")
-  dict.size(c.rules) |> should.equal(0)
-  dict.size(c.ignore) |> should.equal(0)
+  let assert True = dict.size(c.rules) == 0
+  let assert True = dict.size(c.ignore) == 0
 }
 
 pub fn parse_rules_section_test() {
@@ -16,9 +15,9 @@ avoid_panic = \"error\"
 echo = \"off\"
 "
   let assert Ok(c) = config.parse(toml)
-  dict.get(c.rules, "avoid_panic")
-  |> should.equal(Ok(Some(config.SeverityError)))
-  dict.get(c.rules, "echo") |> should.equal(Ok(None))
+  let assert True =
+    dict.get(c.rules, "avoid_panic") == Ok(Some(config.SeverityError))
+  let assert True = dict.get(c.rules, "echo") == Ok(None)
 }
 
 pub fn parse_warning_severity_test() {
@@ -27,8 +26,8 @@ pub fn parse_warning_severity_test() {
 echo = \"warning\"
 "
   let assert Ok(c) = config.parse(toml)
-  dict.get(c.rules, "echo")
-  |> should.equal(Ok(Some(config.SeverityWarning)))
+  let assert True =
+    dict.get(c.rules, "echo") == Ok(Some(config.SeverityWarning))
 }
 
 pub fn parse_ignore_section_test() {
@@ -37,8 +36,8 @@ pub fn parse_ignore_section_test() {
 \"test/**/*.gleam\" = [\"avoid_panic\", \"echo\"]
 "
   let assert Ok(c) = config.parse(toml)
-  dict.get(c.ignore, "test/**/*.gleam")
-  |> should.equal(Ok(["avoid_panic", "echo"]))
+  let assert True =
+    dict.get(c.ignore, "test/**/*.gleam") == Ok(["avoid_panic", "echo"])
 }
 
 pub fn parse_gleam_toml_with_other_sections_test() {
@@ -53,15 +52,15 @@ gleam_stdlib = \">= 0.44.0\"
 echo = \"error\"
 "
   let assert Ok(c) = config.parse(toml)
-  dict.get(c.rules, "echo")
-  |> should.equal(Ok(Some(config.SeverityError)))
+  let assert True =
+    dict.get(c.rules, "echo") == Ok(Some(config.SeverityError))
 }
 
 pub fn default_config_test() {
   let c = config.default()
-  dict.size(c.rules) |> should.equal(0)
-  dict.size(c.ignore) |> should.equal(0)
-  c.stats |> should.equal(False)
+  let assert True = dict.size(c.rules) == 0
+  let assert True = dict.size(c.ignore) == 0
+  let assert False = c.stats
 }
 
 pub fn parse_stats_enabled_test() {
@@ -70,7 +69,7 @@ pub fn parse_stats_enabled_test() {
 stats = true
 "
   let assert Ok(c) = config.parse(toml)
-  c.stats |> should.equal(True)
+  let assert True = c.stats
 }
 
 pub fn parse_stats_disabled_test() {
@@ -79,12 +78,12 @@ pub fn parse_stats_disabled_test() {
 stats = false
 "
   let assert Ok(c) = config.parse(toml)
-  c.stats |> should.equal(False)
+  let assert False = c.stats
 }
 
 pub fn parse_stats_defaults_to_false_test() {
   let assert Ok(c) = config.parse("")
-  c.stats |> should.equal(False)
+  let assert False = c.stats
 }
 
 pub fn parse_include_test() {
@@ -93,10 +92,10 @@ pub fn parse_include_test() {
 include = [\"src/\", \"test/\"]
 "
   let assert Ok(c) = config.parse(toml)
-  c.include |> should.equal(["src/", "test/"])
+  let assert True = c.include == ["src/", "test/"]
 }
 
 pub fn parse_include_defaults_to_empty_test() {
   let assert Ok(c) = config.parse("")
-  c.include |> should.equal([])
+  let assert True = c.include == []
 }

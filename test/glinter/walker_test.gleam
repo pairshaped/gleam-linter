@@ -1,6 +1,5 @@
 import glance
 import gleam/list
-import gleeunit/should
 import glinter/rule.{Error, Rule, RuleResult, Warning}
 import glinter/test_helpers
 
@@ -31,18 +30,18 @@ fn panic_rule() -> rule.Rule {
 
 pub fn walk_finds_panic_in_function_test() {
   let results = test_helpers.lint_string("pub fn bad() { panic }", panic_rule())
-  list.length(results) |> should.equal(1)
+  let assert True = list.length(results) == 1
 }
 
 pub fn walk_finds_nothing_in_clean_code_test() {
   let results = test_helpers.lint_string("pub fn good() { 1 }", panic_rule())
-  list.length(results) |> should.equal(0)
+  let assert True = results == []
 }
 
 pub fn walk_recurses_into_blocks_test() {
   let results =
     test_helpers.lint_string("pub fn bad() { { panic } }", panic_rule())
-  list.length(results) |> should.equal(1)
+  let assert True = list.length(results) == 1
 }
 
 pub fn walk_recurses_into_case_branches_test() {
@@ -51,13 +50,13 @@ pub fn walk_recurses_into_case_branches_test() {
       "pub fn bad(x) { case x { _ -> panic } }",
       panic_rule(),
     )
-  list.length(results) |> should.equal(1)
+  let assert True = list.length(results) == 1
 }
 
 pub fn walk_fills_in_file_field_test() {
   let results = test_helpers.lint_string("pub fn bad() { panic }", panic_rule())
   let assert [result] = results
-  result.file |> should.equal("test.gleam")
+  let assert True = result.file == "test.gleam"
 }
 
 pub fn walk_applies_rule_severity_override_test() {
@@ -65,5 +64,5 @@ pub fn walk_applies_rule_severity_override_test() {
   let overridden_rule = Rule(..panic_rule(), default_severity: Warning)
   let results = test_helpers.lint_string("pub fn bad() { panic }", overridden_rule)
   let assert [result] = results
-  result.severity |> should.equal(Warning)
+  let assert True = result.severity == Warning
 }

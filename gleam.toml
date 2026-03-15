@@ -43,15 +43,16 @@ string_inspect = "warning"
 duplicate_import = "warning"
 
 # Ignore rules for specific file patterns
-# AST traversal code is inherently complex — suppress complexity warnings
 [tools.glinter.ignore]
+# Rule check functions match a callback signature, so labels aren't applicable
+"src/glinter/rules/*.gleam" = ["label_possible"]
+# AST traversal code is inherently complex — suppress complexity warnings
 "src/glinter.gleam" = ["label_possible"]
 "src/glinter/walker.gleam" = ["deep_nesting", "function_complexity", "label_possible"]
 "src/glinter/analysis.gleam" = ["deep_nesting", "function_complexity"]
 "src/glinter/reporter.gleam" = ["label_possible"]
 "src/glinter/ignore.gleam" = ["label_possible"]
 "src/glinter/config.gleam" = ["deep_nesting"]
-"src/glinter/rules/deep_nesting.gleam" = ["deep_nesting", "function_complexity", "label_possible"]
-"src/glinter/rules/missing_labels.gleam" = ["deep_nesting", "function_complexity", "label_possible", "prefer_guard_clause"]
-"src/glinter/rules/prefer_guard_clause.gleam" = ["label_possible"]
+"src/glinter/rules/deep_nesting.gleam" = ["deep_nesting", "function_complexity"]
+"src/glinter/rules/missing_labels.gleam" = ["deep_nesting", "function_complexity", "prefer_guard_clause"]
 "src/glinter/unused_exports.gleam" = ["deep_nesting", "function_complexity", "module_complexity", "label_possible"]

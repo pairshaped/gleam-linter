@@ -1,5 +1,4 @@
 import gleam/list
-import gleeunit/should
 import glinter/rules/duplicate_import
 import glinter/test_helpers
 
@@ -10,11 +9,11 @@ pub fn detects_duplicate_import_test() {
        import gleam/list",
       duplicate_import.rule(),
     )
-  list.length(results) |> should.equal(1)
+  let assert True = list.length(results) == 1
   let assert [result] = results
-  result.rule |> should.equal("duplicate_import")
-  result.message
-  |> should.equal("Module 'gleam/list' is imported more than once")
+  let assert True = result.rule == "duplicate_import"
+  let assert True =
+    result.message == "Module 'gleam/list' is imported more than once"
 }
 
 pub fn ignores_unique_imports_test() {
@@ -24,13 +23,13 @@ pub fn ignores_unique_imports_test() {
        import gleam/string",
       duplicate_import.rule(),
     )
-  list.length(results) |> should.equal(0)
+  let assert True = results == []
 }
 
 pub fn ignores_single_import_test() {
   let results =
     test_helpers.lint_string("import gleam/list", duplicate_import.rule())
-  list.length(results) |> should.equal(0)
+  let assert True = results == []
 }
 
 pub fn detects_triple_import_test() {
@@ -42,5 +41,5 @@ pub fn detects_triple_import_test() {
        import gleam/list",
       duplicate_import.rule(),
     )
-  list.length(results) |> should.equal(2)
+  let assert True = list.length(results) == 2
 }

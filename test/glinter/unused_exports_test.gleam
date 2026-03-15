@@ -1,6 +1,5 @@
 import glance
 import gleam/list
-import gleeunit/should
 import glinter/rule
 import glinter/unused_exports.{
   PubConstant, PubCustomType, PubFunction, PubTypeAlias,
@@ -23,7 +22,7 @@ pub fn collects_pub_functions_test() {
         _ -> False
       }
     })
-  list.length(fns) |> should.equal(2)
+  let assert True = list.length(fns) == 2
 }
 
 pub fn excludes_main_function_test() {
@@ -33,7 +32,7 @@ pub fn excludes_main_function_test() {
      pub fn other() { Nil }",
     )
   let defs = unused_exports.collect_pub_definitions(module)
-  list.length(defs) |> should.equal(1)
+  let assert True = list.length(defs) == 1
 }
 
 pub fn collects_pub_constants_test() {
@@ -43,10 +42,10 @@ pub fn collects_pub_constants_test() {
      const private = \"world\"",
     )
   let defs = unused_exports.collect_pub_definitions(module)
-  list.length(defs) |> should.equal(1)
+  let assert True = list.length(defs) == 1
   let assert [def] = defs
-  def.kind |> should.equal(PubConstant)
-  def.name |> should.equal("name")
+  let assert True = def.kind == PubConstant
+  let assert True = def.name == "name"
 }
 
 pub fn collects_pub_types_test() {
@@ -56,18 +55,18 @@ pub fn collects_pub_types_test() {
      type Private { X }",
     )
   let defs = unused_exports.collect_pub_definitions(module)
-  list.length(defs) |> should.equal(1)
+  let assert True = list.length(defs) == 1
   let assert [def] = defs
-  def.kind |> should.equal(PubCustomType)
-  def.name |> should.equal("Color")
+  let assert True = def.kind == PubCustomType
+  let assert True = def.name == "Color"
 }
 
 pub fn collects_pub_type_aliases_test() {
   let assert Ok(module) = glance.module("pub type Name = String")
   let defs = unused_exports.collect_pub_definitions(module)
-  list.length(defs) |> should.equal(1)
+  let assert True = list.length(defs) == 1
   let assert [def] = defs
-  def.kind |> should.equal(PubTypeAlias)
+  let assert True = def.kind == PubTypeAlias
 }
 
 // --- resolve_module_import tests ---
@@ -75,46 +74,44 @@ pub fn collects_pub_type_aliases_test() {
 pub fn resolves_qualified_import_test() {
   let assert Ok(module) = glance.module("import myapp/users")
   let result = unused_exports.resolve_module_import(module, "myapp/users")
-  result |> should.equal([unused_exports.QualifiedAs("users")])
+  let assert True = result == [unused_exports.QualifiedAs("users")]
 }
 
 pub fn resolves_aliased_import_test() {
   let assert Ok(module) = glance.module("import myapp/users as u")
   let result = unused_exports.resolve_module_import(module, "myapp/users")
-  result |> should.equal([unused_exports.QualifiedAs("u")])
+  let assert True = result == [unused_exports.QualifiedAs("u")]
 }
 
 pub fn resolves_unqualified_value_imports_test() {
   let assert Ok(module) =
     glance.module("import myapp/users.{create, find_by_id}")
   let result = unused_exports.resolve_module_import(module, "myapp/users")
-  should.be_true(list.contains(result, unused_exports.QualifiedAs("users")))
-  should.be_true(list.contains(
-    result,
-    unused_exports.UnqualifiedValue("create"),
-  ))
-  should.be_true(list.contains(
-    result,
-    unused_exports.UnqualifiedValue("find_by_id"),
-  ))
+  let assert True =
+    list.contains(result, unused_exports.QualifiedAs("users"))
+  let assert True =
+    list.contains(result, unused_exports.UnqualifiedValue("create"))
+  let assert True =
+    list.contains(result, unused_exports.UnqualifiedValue("find_by_id"))
 }
 
 pub fn resolves_unqualified_type_imports_test() {
   let assert Ok(module) = glance.module("import myapp/users.{type User}")
   let result = unused_exports.resolve_module_import(module, "myapp/users")
-  should.be_true(list.contains(result, unused_exports.UnqualifiedType("User")))
+  let assert True =
+    list.contains(result, unused_exports.UnqualifiedType("User"))
 }
 
 pub fn returns_empty_for_no_import_test() {
   let assert Ok(module) = glance.module("import other/module")
   let result = unused_exports.resolve_module_import(module, "myapp/users")
-  result |> should.equal([])
+  let assert True = result == []
 }
 
 pub fn resolves_discarded_alias_test() {
   let assert Ok(module) = glance.module("import myapp/users as _users")
   let result = unused_exports.resolve_module_import(module, "myapp/users")
-  result |> should.equal([])
+  let assert True = result == []
 }
 
 // --- is_member_used_in tests ---
@@ -132,7 +129,7 @@ pub fn detects_qualified_function_call_test() {
       "create",
       PubFunction,
     )
-  result |> should.be_true
+  let assert True = result
 }
 
 pub fn detects_qualified_constant_access_test() {
@@ -148,7 +145,7 @@ pub fn detects_qualified_constant_access_test() {
       "timeout",
       PubConstant,
     )
-  result |> should.be_true
+  let assert True = result
 }
 
 pub fn detects_qualified_type_in_annotation_test() {
@@ -164,7 +161,7 @@ pub fn detects_qualified_type_in_annotation_test() {
       "User",
       PubCustomType,
     )
-  result |> should.be_true
+  let assert True = result
 }
 
 pub fn detects_qualified_constructor_in_pattern_test() {
@@ -180,7 +177,7 @@ pub fn detects_qualified_constructor_in_pattern_test() {
       "Red",
       PubCustomType,
     )
-  result |> should.be_true
+  let assert True = result
 }
 
 pub fn detects_unqualified_import_as_used_test() {
@@ -192,7 +189,7 @@ pub fn detects_unqualified_import_as_used_test() {
       "create",
       PubFunction,
     )
-  result |> should.be_true
+  let assert True = result
 }
 
 pub fn detects_unqualified_type_import_as_used_test() {
@@ -204,7 +201,7 @@ pub fn detects_unqualified_type_import_as_used_test() {
       "User",
       PubCustomType,
     )
-  result |> should.be_true
+  let assert True = result
 }
 
 pub fn detects_aliased_module_access_test() {
@@ -220,7 +217,7 @@ pub fn detects_aliased_module_access_test() {
       "create",
       PubFunction,
     )
-  result |> should.be_true
+  let assert True = result
 }
 
 pub fn returns_false_when_not_used_test() {
@@ -236,7 +233,7 @@ pub fn returns_false_when_not_used_test() {
       "create",
       PubFunction,
     )
-  result |> should.be_false
+  let assert False = result
 }
 
 pub fn returns_false_when_not_imported_test() {
@@ -248,7 +245,7 @@ pub fn returns_false_when_not_imported_test() {
       "create",
       PubFunction,
     )
-  result |> should.be_false
+  let assert False = result
 }
 
 pub fn detects_record_update_test() {
@@ -264,7 +261,7 @@ pub fn detects_record_update_test() {
       "User",
       PubCustomType,
     )
-  result |> should.be_true
+  let assert True = result
 }
 
 // --- check_unused_exports (orchestration) tests ---
@@ -287,13 +284,12 @@ pub fn detects_unused_pub_function_test() {
   let test_files = []
   let results =
     unused_exports.check_unused_exports(src_files, test_files, rule.Warning)
-  list.length(results) |> should.equal(1)
+  let assert True = list.length(results) == 1
   let assert [result] = results
-  result.message
-  |> should.equal(
-    "Public function 'unused_helper' is never used by another module",
-  )
-  result.file |> should.equal("src/myapp/users.gleam")
+  let assert True =
+    result.message
+    == "Public function 'unused_helper' is never used by another module"
+  let assert True = result.file == "src/myapp/users.gleam"
 }
 
 pub fn all_exports_used_test() {
@@ -309,7 +305,7 @@ pub fn all_exports_used_test() {
   let test_files = []
   let results =
     unused_exports.check_unused_exports(src_files, test_files, rule.Warning)
-  list.length(results) |> should.equal(0)
+  let assert True = results == []
 }
 
 pub fn used_only_in_test_not_flagged_test() {
@@ -326,5 +322,5 @@ pub fn used_only_in_test_not_flagged_test() {
   ]
   let results =
     unused_exports.check_unused_exports(src_files, test_files, rule.Warning)
-  list.length(results) |> should.equal(0)
+  let assert True = results == []
 }

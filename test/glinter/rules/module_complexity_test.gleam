@@ -1,7 +1,6 @@
 import gleam/int
 import gleam/list
 import gleam/string
-import gleeunit/should
 import glinter/rule
 import glinter/rules/module_complexity
 import glinter/test_helpers
@@ -25,7 +24,7 @@ pub fn ignores_module_at_threshold_test() {
   // 5 functions x 10 cases each = 50
   let source = make_n_functions(5, 10)
   let results = test_helpers.lint_string(source, module_complexity.rule())
-  list.length(results) |> should.equal(0)
+  let assert True = results == []
 }
 
 pub fn detects_module_over_threshold_test() {
@@ -33,10 +32,10 @@ pub fn detects_module_over_threshold_test() {
   let source =
     make_n_functions(5, 10) <> "\n\npub fn extra(x) { case x { _ -> 1 } }"
   let results = test_helpers.lint_string(source, module_complexity.rule())
-  list.length(results) |> should.equal(1)
+  let assert True = list.length(results) == 1
   let assert [result] = results
-  result.rule |> should.equal("module_complexity")
-  result.severity |> should.equal(rule.Warning)
+  let assert True = result.rule == "module_complexity"
+  let assert True = result.severity == rule.Warning
 }
 
 pub fn ignores_simple_module_test() {
@@ -45,5 +44,5 @@ pub fn ignores_simple_module_test() {
       "pub fn f() { 1 }\npub fn g() { 2 }",
       module_complexity.rule(),
     )
-  list.length(results) |> should.equal(0)
+  let assert True = results == []
 }

@@ -1,5 +1,4 @@
 import gleam/list
-import gleeunit/should
 import glinter/rule
 import glinter/rules/short_variable_name
 import glinter/test_helpers
@@ -10,10 +9,10 @@ pub fn detects_single_letter_name_test() {
       "pub fn bad() { let x = 1 \n x }",
       short_variable_name.rule(),
     )
-  list.length(results) |> should.equal(1)
+  let assert True = list.length(results) == 1
   let assert [result] = results
-  result.rule |> should.equal("short_variable_name")
-  result.severity |> should.equal(rule.Warning)
+  let assert True = result.rule == "short_variable_name"
+  let assert True = result.severity == rule.Warning
 }
 
 pub fn ignores_descriptive_name_test() {
@@ -22,7 +21,7 @@ pub fn ignores_descriptive_name_test() {
       "pub fn ok() { let count = 1 \n count }",
       short_variable_name.rule(),
     )
-  list.length(results) |> should.equal(0)
+  let assert True = results == []
 }
 
 pub fn ignores_single_letter_fn_param_test() {
@@ -32,7 +31,7 @@ pub fn ignores_single_letter_fn_param_test() {
 pub fn ok() { list.map([1], fn(x) { x }) }",
       short_variable_name.rule(),
     )
-  list.length(results) |> should.equal(0)
+  let assert True = results == []
 }
 
 pub fn ignores_case_clause_pattern_test() {
@@ -41,7 +40,7 @@ pub fn ignores_case_clause_pattern_test() {
       "pub fn ok(val) { case val { x -> x } }",
       short_variable_name.rule(),
     )
-  list.length(results) |> should.equal(0)
+  let assert True = results == []
 }
 
 pub fn detects_multiple_short_names_test() {
@@ -50,5 +49,5 @@ pub fn detects_multiple_short_names_test() {
       "pub fn bad() { let a = 1 \n let b = 2 \n a + b }",
       short_variable_name.rule(),
     )
-  list.length(results) |> should.equal(2)
+  let assert True = list.length(results) == 2
 }

@@ -1,5 +1,4 @@
 import gleam/list
-import gleeunit/should
 import glinter/rule
 import glinter/rules/redundant_case
 import glinter/test_helpers
@@ -10,10 +9,10 @@ pub fn detects_single_branch_case_test() {
       "pub fn bad(x) { case x { Ok(v) -> v } }",
       redundant_case.rule(),
     )
-  list.length(results) |> should.equal(1)
+  let assert True = list.length(results) == 1
   let assert [result] = results
-  result.rule |> should.equal("redundant_case")
-  result.severity |> should.equal(rule.Warning)
+  let assert True = result.rule == "redundant_case"
+  let assert True = result.severity == rule.Warning
 }
 
 pub fn ignores_multi_branch_case_test() {
@@ -22,7 +21,7 @@ pub fn ignores_multi_branch_case_test() {
       "pub fn ok(x) { case x { Ok(v) -> v \n Error(_) -> 0 } }",
       redundant_case.rule(),
     )
-  list.length(results) |> should.equal(0)
+  let assert True = results == []
 }
 
 pub fn ignores_single_branch_with_guard_test() {
@@ -31,5 +30,5 @@ pub fn ignores_single_branch_with_guard_test() {
       "pub fn ok(x) { case x { v if v > 0 -> v \n _ -> 0 } }",
       redundant_case.rule(),
     )
-  list.length(results) |> should.equal(0)
+  let assert True = results == []
 }

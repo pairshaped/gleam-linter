@@ -1,5 +1,4 @@
 import gleam/list
-import gleeunit/should
 import glinter/rule
 import glinter/rules/prefer_guard_clause
 import glinter/test_helpers
@@ -15,10 +14,10 @@ pub fn detects_true_false_case_test() {
       }",
       prefer_guard_clause.rule(),
     )
-  list.length(results) |> should.equal(1)
+  let assert True = list.length(results) == 1
   let assert [result] = results
-  result.rule |> should.equal("prefer_guard_clause")
-  result.severity |> should.equal(rule.Warning)
+  let assert True = result.rule == "prefer_guard_clause"
+  let assert True = result.severity == rule.Warning
 }
 
 pub fn detects_false_true_order_test() {
@@ -32,7 +31,7 @@ pub fn detects_false_true_order_test() {
       }",
       prefer_guard_clause.rule(),
     )
-  list.length(results) |> should.equal(1)
+  let assert True = list.length(results) == 1
 }
 
 pub fn ignores_multi_branch_case_test() {
@@ -47,7 +46,7 @@ pub fn ignores_multi_branch_case_test() {
       }",
       prefer_guard_clause.rule(),
     )
-  list.length(results) |> should.equal(0)
+  let assert True = results == []
 }
 
 pub fn ignores_non_boolean_patterns_test() {
@@ -61,7 +60,7 @@ pub fn ignores_non_boolean_patterns_test() {
       }",
       prefer_guard_clause.rule(),
     )
-  list.length(results) |> should.equal(0)
+  let assert True = results == []
 }
 
 pub fn ignores_case_with_guard_test() {
@@ -75,7 +74,7 @@ pub fn ignores_case_with_guard_test() {
       }",
       prefer_guard_clause.rule(),
     )
-  list.length(results) |> should.equal(0)
+  let assert True = results == []
 }
 
 pub fn ignores_multi_statement_body_test() {
@@ -90,7 +89,7 @@ pub fn ignores_multi_statement_body_test() {
       }",
       prefer_guard_clause.rule(),
     )
-  list.length(results) |> should.equal(0)
+  let assert True = results == []
 }
 
 pub fn ignores_both_branches_block_test() {
@@ -104,5 +103,5 @@ pub fn ignores_both_branches_block_test() {
       }",
       prefer_guard_clause.rule(),
     )
-  list.length(results) |> should.equal(0)
+  let assert True = results == []
 }

@@ -1,5 +1,4 @@
 import gleam/list
-import gleeunit/should
 import glinter/rule
 import glinter/rules/missing_labels
 import glinter/test_helpers
@@ -11,10 +10,10 @@ pub fn detects_missing_label_test() {
 pub fn main() { greet(\"world\") }",
       missing_labels.rule(),
     )
-  list.length(results) |> should.equal(1)
+  let assert True = list.length(results) == 1
   let assert [result] = results
-  result.rule |> should.equal("missing_labels")
-  result.severity |> should.equal(rule.Warning)
+  let assert True = result.rule == "missing_labels"
+  let assert True = result.severity == rule.Warning
 }
 
 pub fn ignores_correctly_labeled_call_test() {
@@ -24,7 +23,7 @@ pub fn ignores_correctly_labeled_call_test() {
 pub fn main() { greet(name: \"world\") }",
       missing_labels.rule(),
     )
-  list.length(results) |> should.equal(0)
+  let assert True = results == []
 }
 
 pub fn ignores_function_without_labels_test() {
@@ -34,7 +33,7 @@ pub fn ignores_function_without_labels_test() {
 pub fn main() { add(1, 2) }",
       missing_labels.rule(),
     )
-  list.length(results) |> should.equal(0)
+  let assert True = results == []
 }
 
 pub fn ignores_unknown_function_test() {
@@ -43,7 +42,7 @@ pub fn ignores_unknown_function_test() {
       "pub fn main() { unknown_fn(1, 2) }",
       missing_labels.rule(),
     )
-  list.length(results) |> should.equal(0)
+  let assert True = results == []
 }
 
 pub fn ignores_mismatched_arg_count_test() {
@@ -53,7 +52,7 @@ pub fn ignores_mismatched_arg_count_test() {
 pub fn main() { greet(\"a\", \"b\") }",
       missing_labels.rule(),
     )
-  list.length(results) |> should.equal(0)
+  let assert True = results == []
 }
 
 pub fn detects_multiple_missing_labels_test() {
@@ -63,7 +62,7 @@ pub fn detects_multiple_missing_labels_test() {
 pub fn main() { greet(\"world\", \"hello\") }",
       missing_labels.rule(),
     )
-  list.length(results) |> should.equal(2)
+  let assert True = list.length(results) == 2
 }
 
 pub fn detects_call_in_nested_block_test() {
@@ -73,7 +72,7 @@ pub fn detects_call_in_nested_block_test() {
 pub fn main() { { greet(\"world\") } }",
       missing_labels.rule(),
     )
-  list.length(results) |> should.equal(1)
+  let assert True = list.length(results) == 1
 }
 
 pub fn ignores_partial_label_present_test() {
@@ -83,5 +82,5 @@ pub fn ignores_partial_label_present_test() {
 pub fn main() { greet(name: \"world\", \"hello\") }",
       missing_labels.rule(),
     )
-  list.length(results) |> should.equal(1)
+  let assert True = list.length(results) == 1
 }

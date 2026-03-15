@@ -28,7 +28,7 @@ fn count_stmt_branches(stmt: Statement) -> Int {
   }
 }
 
-pub fn count_expr_branches(expr: Expression) -> Int {
+fn count_expr_branches(expr: Expression) -> Int {
   case expr {
     glance.Case(_, subjects, clauses) -> {
       let subject_count =

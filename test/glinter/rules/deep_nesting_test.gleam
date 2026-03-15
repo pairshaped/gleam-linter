@@ -1,5 +1,4 @@
 import gleam/list
-import gleeunit/should
 import glinter/rule
 import glinter/rules/deep_nesting
 import glinter/test_helpers
@@ -11,7 +10,7 @@ pub fn ignores_shallow_nesting_test() {
       "pub fn f() { { { { { 1 } } } } }",
       deep_nesting.rule(),
     )
-  list.length(results) |> should.equal(0)
+  let assert True = results == []
 }
 
 pub fn detects_deep_nesting_test() {
@@ -21,10 +20,10 @@ pub fn detects_deep_nesting_test() {
       "pub fn f() { { { { { { 1 } } } } } }",
       deep_nesting.rule(),
     )
-  list.length(results) |> should.equal(1)
+  let assert True = list.length(results) == 1
   let assert [result] = results
-  result.rule |> should.equal("deep_nesting")
-  result.severity |> should.equal(rule.Warning)
+  let assert True = result.rule == "deep_nesting"
+  let assert True = result.severity == rule.Warning
 }
 
 pub fn detects_deep_case_nesting_test() {
@@ -47,7 +46,7 @@ pub fn detects_deep_case_nesting_test() {
       }",
       deep_nesting.rule(),
     )
-  list.length(results) |> should.equal(1)
+  let assert True = list.length(results) == 1
 }
 
 pub fn detects_deep_fn_nesting_test() {
@@ -58,7 +57,7 @@ pub fn detects_deep_fn_nesting_test() {
       }",
       deep_nesting.rule(),
     )
-  list.length(results) |> should.equal(1)
+  let assert True = list.length(results) == 1
 }
 
 pub fn reports_only_first_crossing_test() {
@@ -68,5 +67,5 @@ pub fn reports_only_first_crossing_test() {
       "pub fn f() { { { { { { { 1 } } } } } } }",
       deep_nesting.rule(),
     )
-  list.length(results) |> should.equal(1)
+  let assert True = list.length(results) == 1
 }

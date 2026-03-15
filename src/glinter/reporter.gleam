@@ -16,7 +16,7 @@ pub type Stats {
 }
 
 /// Convert byte offset to line number (1-indexed)
-pub fn byte_offset_to_line(source: String, offset: Int) -> Int {
+fn byte_offset_to_line(source: String, offset: Int) -> Int {
   let source_bytes = <<source:utf8>>
   let size = bit_array.byte_size(source_bytes)
   let clamped = case offset <= size {
@@ -37,7 +37,7 @@ pub fn byte_offset_to_line(source: String, offset: Int) -> Int {
 }
 
 /// Sort results by file, then by line number
-pub fn sort_results(
+fn sort_results(
   results: List(LintResult),
   sources: List(#(String, String)),
 ) -> List(#(LintResult, Int)) {
