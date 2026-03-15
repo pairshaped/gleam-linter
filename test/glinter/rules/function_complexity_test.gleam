@@ -23,7 +23,7 @@ pub fn detects_function_over_threshold_test() {
   let assert True = list.length(results) == 1
   let assert [result] = results
   let assert True = result.rule == "function_complexity"
-  let assert True = result.severity == rule.Warning
+  let assert True = result.severity == rule.Off
 }
 
 pub fn counts_anonymous_fns_test() {

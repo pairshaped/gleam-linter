@@ -80,7 +80,7 @@ done
 ### Complexity
 
 - **deep_nesting** (warning): flags nesting deeper than 5 levels
-- **function_complexity** (warning): flags functions with more than 10 branching nodes
+- **function_complexity** (off): flags functions with more than 10 branching nodes. Off by default — branch count doesn't correlate with readability (routers, state machines, parsers are naturally branchy). Enable with `function_complexity = "warning"` in config.
 - **module_complexity** (off): flags modules with more than 100 total branching nodes. Off by default — [large cohesive modules are idiomatic Gleam](https://gleam.run/documentation/conventions-patterns-and-anti-patterns/#Fragmented-modules). Enable with `module_complexity = "warning"` in config.
 
 ### Labels
@@ -118,7 +118,7 @@ unnecessary_variable = "warning"
 redundant_case = "warning"
 unwrap_used = "warning"
 deep_nesting = "warning"
-function_complexity = "warning"
+function_complexity = "off"  # off by default
 module_complexity = "off"  # off by default
 prefer_guard_clause = "warning"
 missing_labels = "warning"
