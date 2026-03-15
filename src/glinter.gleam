@@ -32,6 +32,7 @@ import glinter/rules/unnecessary_variable
 import glinter/rules/dynamic_sql
 import glinter/rules/unqualified_import
 import glinter/rules/unwrap_used
+import glinter/ffi_usage
 import glinter/unused_exports
 import simplifile
 
@@ -112,6 +113,10 @@ pub fn main() {
   // Cross-module: unused exports detection
   let unused_export_results = run_unused_exports(sources, project_prefix, cfg)
   let results = list.append(per_file_results, unused_export_results)
+
+  // Cross-file: FFI usage detection (scans .mjs/.js files)
+  let ffi_results = run_ffi_usage(effective_paths, project_prefix, cfg)
+  let results = list.append(results, ffi_results)
 
   let elapsed_ms = monotonic_time_ms() - start_time
   let stats =
@@ -370,6 +375,35 @@ fn run_unused_exports(
       unused_exports.check_unused_exports(src_files, test_files, sev)
       |> list.filter(fn(r) {
         !ignore.is_rule_ignored(r.file, "unused_exports", cfg.ignore)
+      })
+    }
+  }
+}
+
+/// Run FFI usage detection as a cross-file pass (scans .mjs/.js files).
+/// Default severity is Off — must be explicitly enabled in config.
+fn run_ffi_usage(
+  effective_paths: List(String),
+  project_prefix: String,
+  cfg: config.Config,
+) -> List(rule.LintResult) {
+  let severity = case dict.get(cfg.rules, "ffi_usage") {
+    Ok(None) -> Error(Nil)
+    Ok(Some(config.SeverityError)) -> Ok(rule.Error)
+    Ok(Some(config.SeverityWarning)) -> Ok(rule.Warning)
+    Error(_) -> Error(Nil)
+  }
+
+  case severity {
+    Error(_) -> []
+    Ok(sev) -> {
+      let dirs =
+        effective_paths
+        |> list.map(fn(p) { strip_prefix(p, project_prefix) })
+      ffi_usage.check_ffi_files(dirs, project_prefix)
+      |> list.map(fn(r) { rule.LintResult(..r, severity: sev) })
+      |> list.filter(fn(r) {
+        !ignore.is_rule_ignored(r.file, "ffi_usage", cfg.ignore)
       })
     }
   }
