@@ -1,22 +1,12 @@
-import glance
 import gleam/list
 import gleeunit/should
-import glinter/rule.{type LintResult}
+import glinter/rule
 import glinter/rules/avoid_panic
-import glinter/walker
-
-fn lint_string(source: String) -> List(LintResult) {
-  let assert Ok(module) = glance.module(source)
-  let r = avoid_panic.rule()
-  let data = walker.collect(module)
-  r.check(data, source)
-  |> list.map(fn(result) {
-    rule.LintResult(..result, file: "test.gleam", severity: r.default_severity)
-  })
-}
+import glinter/test_helpers
 
 pub fn detects_panic_test() {
-  let results = lint_string("pub fn bad() { panic }")
+  let results =
+    test_helpers.lint_string("pub fn bad() { panic }", avoid_panic.rule())
   list.length(results) |> should.equal(1)
   let assert [result] = results
   result.rule |> should.equal("avoid_panic")
@@ -24,16 +14,22 @@ pub fn detects_panic_test() {
 }
 
 pub fn detects_panic_with_message_test() {
-  let results = lint_string("pub fn bad() { panic as \"oh no\" }")
+  let results =
+    test_helpers.lint_string(
+      "pub fn bad() { panic as \"oh no\" }",
+      avoid_panic.rule(),
+    )
   list.length(results) |> should.equal(1)
 }
 
 pub fn ignores_clean_code_test() {
-  let results = lint_string("pub fn good() { Ok(1) }")
+  let results =
+    test_helpers.lint_string("pub fn good() { Ok(1) }", avoid_panic.rule())
   list.length(results) |> should.equal(0)
 }
 
 pub fn detects_nested_panic_test() {
-  let results = lint_string("pub fn bad() { { panic } }")
+  let results =
+    test_helpers.lint_string("pub fn bad() { { panic } }", avoid_panic.rule())
   list.length(results) |> should.equal(1)
 }

@@ -1,6 +1,11 @@
 /// Walker utilities for AST traversal.
 /// Provides a single-pass collector that builds flat lists of all expressions
 /// and statements, plus helpers for rules that need custom traversal.
+///
+/// NOTE: This is one of 5 modules with expression tree traversal that must
+/// stay in sync when glance adds new expression variants. The others are:
+/// analysis.gleam, rules/deep_nesting.gleam, rules/missing_labels.gleam,
+/// and unused_exports.gleam.
 
 import glance.{type Expression, type Module, type Statement}
 import gleam/list

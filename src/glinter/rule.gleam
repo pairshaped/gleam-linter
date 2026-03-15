@@ -5,6 +5,13 @@ pub type Severity {
   Warning
 }
 
+/// Result returned by individual rules. Does not include file or severity —
+/// those are set by the orchestrator from the Rule and file context.
+pub type RuleResult {
+  RuleResult(rule: String, location: Span, message: String)
+}
+
+/// Full lint result with file path and severity, produced by the orchestrator.
 pub type LintResult {
   LintResult(
     rule: String,
@@ -33,6 +40,8 @@ pub type Rule {
     /// When False, walker.collect() can be skipped if no other active rule
     /// needs it.
     needs_collect: Bool,
-    check: fn(ModuleData, String) -> List(LintResult),
+    /// The source parameter provides the raw file content for rules that need
+    /// string-level analysis beyond what the parsed AST offers.
+    check: fn(ModuleData, String) -> List(RuleResult),
   )
 }

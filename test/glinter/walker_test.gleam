@@ -1,7 +1,7 @@
 import glance
 import gleam/list
 import gleeunit/should
-import glinter/rule.{type LintResult, Error, LintResult, Rule, Warning}
+import glinter/rule.{type LintResult, Error, LintResult, Rule, RuleResult, Warning}
 import glinter/walker
 
 /// Helper: parse source and run a rule
@@ -12,7 +12,13 @@ fn lint_string(source: String, rules: List(rule.Rule)) -> List(LintResult) {
   |> list.flat_map(fn(r) {
     r.check(data, source)
     |> list.map(fn(result) {
-      LintResult(..result, file: "test.gleam", severity: r.default_severity)
+      LintResult(
+        rule: result.rule,
+        severity: r.default_severity,
+        file: "test.gleam",
+        location: result.location,
+        message: result.message,
+      )
     })
   })
 }
@@ -20,15 +26,13 @@ fn lint_string(source: String, rules: List(rule.Rule)) -> List(LintResult) {
 fn check_for_panic(
   data: rule.ModuleData,
   _source: String,
-) -> List(LintResult) {
+) -> List(rule.RuleResult) {
   data.expressions
   |> list.flat_map(fn(expr) {
     case expr {
       glance.Panic(location, _) -> [
-        LintResult(
+        RuleResult(
           rule: "test_panic",
-          severity: Error,
-          file: "",
           location: location,
           message: "found panic",
         ),

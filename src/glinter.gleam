@@ -245,9 +245,11 @@ fn lint_file(
               r.check(data, source)
               |> list.map(fn(result) {
                 LintResult(
-                  ..result,
-                  file: display_path,
+                  rule: result.rule,
                   severity: r.default_severity,
+                  file: display_path,
+                  location: result.location,
+                  message: result.message,
                 )
               })
             })

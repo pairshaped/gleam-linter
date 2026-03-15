@@ -1,18 +1,18 @@
 import glance
 import gleam/list
 import gleam/option.{None}
-import glinter/rule.{type Rule, LintResult, Rule, Warning}
+import glinter/rule.{type Rule, Rule, RuleResult, Warning}
 
 pub fn rule() -> Rule {
   Rule(name: "prefer_guard_clause", default_severity: Warning, needs_collect: False, check: check)
 }
 
-fn check(data: rule.ModuleData, _source: String) -> List(rule.LintResult) {
+fn check(data: rule.ModuleData, _source: String) -> List(rule.RuleResult) {
   data.module.functions
   |> list.flat_map(fn(def) { check_function(def.definition) })
 }
 
-fn check_function(func: glance.Function) -> List(rule.LintResult) {
+fn check_function(func: glance.Function) -> List(rule.RuleResult) {
   case func.body {
     [glance.Expression(glance.Case(location, _, [clause_a, clause_b]))] ->
       case
@@ -22,10 +22,8 @@ fn check_function(func: glance.Function) -> List(rule.LintResult) {
         && has_simple_branch(clause_a, clause_b)
       {
         True -> [
-          LintResult(
+          RuleResult(
             rule: "prefer_guard_clause",
-            severity: Warning,
-            file: "",
             location: location,
             message: "Consider using 'use <- bool.guard' instead of case True/False",
           ),

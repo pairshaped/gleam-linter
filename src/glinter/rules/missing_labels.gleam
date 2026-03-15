@@ -1,15 +1,19 @@
+/// NOTE: Expression tree traversal here must stay in sync with walker.gleam,
+/// analysis.gleam, rules/deep_nesting.gleam, and unused_exports.gleam
+/// when glance adds new expression variants.
+
 import glance.{type Expression, type Statement}
 import gleam/dict.{type Dict}
 import gleam/int
 import gleam/list
 import gleam/option.{None, Some}
-import glinter/rule.{type Rule, LintResult, Rule, Warning}
+import glinter/rule.{type Rule, Rule, RuleResult, Warning}
 
 pub fn rule() -> Rule {
   Rule(name: "missing_labels", default_severity: Warning, needs_collect: False, check: check)
 }
 
-fn check(data: rule.ModuleData, _source: String) -> List(rule.LintResult) {
+fn check(data: rule.ModuleData, _source: String) -> List(rule.RuleResult) {
   // Build dict of function name -> parameters
   let fn_params =
     data.module.functions
@@ -25,7 +29,7 @@ fn check(data: rule.ModuleData, _source: String) -> List(rule.LintResult) {
 fn walk_stmts(
   stmts: List(Statement),
   fn_params: Dict(String, List(glance.FunctionParameter)),
-) -> List(rule.LintResult) {
+) -> List(rule.RuleResult) {
   stmts
   |> list.flat_map(fn(stmt) { walk_stmt(stmt, fn_params) })
 }
@@ -33,7 +37,7 @@ fn walk_stmts(
 fn walk_stmt(
   stmt: Statement,
   fn_params: Dict(String, List(glance.FunctionParameter)),
-) -> List(rule.LintResult) {
+) -> List(rule.RuleResult) {
   case stmt {
     glance.Expression(expr) -> walk_expr(expr, fn_params)
     glance.Assignment(value: expr, ..) -> walk_expr(expr, fn_params)
@@ -45,7 +49,7 @@ fn walk_stmt(
 fn walk_expr(
   expr: Expression,
   fn_params: Dict(String, List(glance.FunctionParameter)),
-) -> List(rule.LintResult) {
+) -> List(rule.RuleResult) {
   let call_results = case expr {
     glance.Call(location, glance.Variable(_, name), arguments) ->
       case dict.get(fn_params, name) {
@@ -64,7 +68,7 @@ fn check_call(
   name: String,
   arguments: List(glance.Field(Expression)),
   params: List(glance.FunctionParameter),
-) -> List(rule.LintResult) {
+) -> List(rule.RuleResult) {
   case list.length(arguments) == list.length(params) {
     False -> []
     True ->
@@ -73,10 +77,8 @@ fn check_call(
         let #(arg, param) = pair
         case param.label, arg {
           Some(label), glance.UnlabelledField(_) ->
-            Ok(LintResult(
+            Ok(RuleResult(
               rule: "missing_labels",
-              severity: Warning,
-              file: "",
               location: location,
               message: "Call to '"
                 <> name
@@ -95,7 +97,7 @@ fn check_call(
 fn walk_children(
   expr: Expression,
   fn_params: Dict(String, List(glance.FunctionParameter)),
-) -> List(rule.LintResult) {
+) -> List(rule.RuleResult) {
   case expr {
     glance.Block(_, stmts) -> walk_stmts(stmts, fn_params)
 

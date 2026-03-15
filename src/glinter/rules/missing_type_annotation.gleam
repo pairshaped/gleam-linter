@@ -1,24 +1,22 @@
 import glance
 import gleam/list
 import gleam/option.{None, Some}
-import glinter/rule.{type Rule, LintResult, Rule, Warning}
+import glinter/rule.{type Rule, Rule, RuleResult, Warning}
 
 pub fn rule() -> Rule {
   Rule(name: "missing_type_annotation", default_severity: Warning, needs_collect: False, check: check)
 }
 
-fn check(data: rule.ModuleData, _source: String) -> List(rule.LintResult) {
+fn check(data: rule.ModuleData, _source: String) -> List(rule.RuleResult) {
   data.module.functions
   |> list.flat_map(fn(def) { check_function(def.definition) })
 }
 
-fn check_function(func: glance.Function) -> List(rule.LintResult) {
+fn check_function(func: glance.Function) -> List(rule.RuleResult) {
   let return_result = case func.return {
     None -> [
-      LintResult(
+      RuleResult(
         rule: "missing_type_annotation",
-        severity: Warning,
-        file: "",
         location: func.location,
         message: "Function '"
           <> func.name
@@ -37,10 +35,8 @@ fn check_function(func: glance.Function) -> List(rule.LintResult) {
             glance.Named(n) -> n
             glance.Discarded(n) -> "_" <> n
           }
-          Ok(LintResult(
+          Ok(RuleResult(
             rule: "missing_type_annotation",
-            severity: Warning,
-            file: "",
             location: func.location,
             message: "Function '"
               <> func.name

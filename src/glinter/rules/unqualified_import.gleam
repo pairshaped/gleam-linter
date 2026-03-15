@@ -1,13 +1,13 @@
 import glance
 import gleam/list
 import gleam/string
-import glinter/rule.{type Rule, LintResult, Rule, Warning}
+import glinter/rule.{type Rule, Rule, RuleResult, Warning}
 
 pub fn rule() -> Rule {
   Rule(name: "unqualified_import", default_severity: Warning, needs_collect: False, check: check)
 }
 
-fn check(data: rule.ModuleData, _source: String) -> List(rule.LintResult) {
+fn check(data: rule.ModuleData, _source: String) -> List(rule.RuleResult) {
   data.module.imports
   |> list.flat_map(fn(def) {
     let glance.Definition(_, import_) = def
@@ -17,10 +17,8 @@ fn check(data: rule.ModuleData, _source: String) -> List(rule.LintResult) {
       // Only flag snake_case functions and constants
       case is_lowercase_start(uq.name) {
         True ->
-          Ok(LintResult(
+          Ok(RuleResult(
             rule: "unqualified_import",
-            severity: Warning,
-            file: "",
             location: import_.location,
             message: "Function '"
               <> uq.name

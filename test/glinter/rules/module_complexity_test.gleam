@@ -1,21 +1,10 @@
-import glance
 import gleam/int
 import gleam/list
 import gleam/string
 import gleeunit/should
-import glinter/rule.{type LintResult}
+import glinter/rule
 import glinter/rules/module_complexity
-import glinter/walker
-
-fn lint_string(source: String) -> List(LintResult) {
-  let assert Ok(module) = glance.module(source)
-  let r = module_complexity.rule()
-  let data = walker.collect(module)
-  r.check(data, source)
-  |> list.map(fn(result) {
-    rule.LintResult(..result, file: "test.gleam", severity: r.default_severity)
-  })
-}
+import glinter/test_helpers
 
 fn make_function_with_cases(name: String, count: Int) -> String {
   let cases =
@@ -35,7 +24,7 @@ fn make_n_functions(count: Int, cases_each: Int) -> String {
 pub fn ignores_module_at_threshold_test() {
   // 5 functions x 10 cases each = 50
   let source = make_n_functions(5, 10)
-  let results = lint_string(source)
+  let results = test_helpers.lint_string(source, module_complexity.rule())
   list.length(results) |> should.equal(0)
 }
 
@@ -43,7 +32,7 @@ pub fn detects_module_over_threshold_test() {
   // 5 functions x 10 cases + 1 extra = 51
   let source =
     make_n_functions(5, 10) <> "\n\npub fn extra(x) { case x { _ -> 1 } }"
-  let results = lint_string(source)
+  let results = test_helpers.lint_string(source, module_complexity.rule())
   list.length(results) |> should.equal(1)
   let assert [result] = results
   result.rule |> should.equal("module_complexity")
@@ -51,6 +40,10 @@ pub fn detects_module_over_threshold_test() {
 }
 
 pub fn ignores_simple_module_test() {
-  let results = lint_string("pub fn f() { 1 }\npub fn g() { 2 }")
+  let results =
+    test_helpers.lint_string(
+      "pub fn f() { 1 }\npub fn g() { 2 }",
+      module_complexity.rule(),
+    )
   list.length(results) |> should.equal(0)
 }

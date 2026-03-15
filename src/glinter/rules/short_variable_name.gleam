@@ -1,17 +1,17 @@
 import glance
 import gleam/list
 import gleam/string
-import glinter/rule.{type Rule, LintResult, Rule, Warning}
+import glinter/rule.{type Rule, Rule, RuleResult, Warning}
 
 pub fn rule() -> Rule {
   Rule(name: "short_variable_name", default_severity: Warning, needs_collect: True, check: check)
 }
 
-fn check(data: rule.ModuleData, _source: String) -> List(rule.LintResult) {
+fn check(data: rule.ModuleData, _source: String) -> List(rule.RuleResult) {
   data.statements |> list.flat_map(check_statement)
 }
 
-fn check_statement(stmt: glance.Statement) -> List(rule.LintResult) {
+fn check_statement(stmt: glance.Statement) -> List(rule.RuleResult) {
   case stmt {
     glance.Assignment(
       location: location,
@@ -21,10 +21,8 @@ fn check_statement(stmt: glance.Statement) -> List(rule.LintResult) {
     ) ->
       case string.length(name) == 1 {
         True -> [
-          LintResult(
+          RuleResult(
             rule: "short_variable_name",
-            severity: Warning,
-            file: "",
             location: location,
             message: "Variable name '"
               <> name

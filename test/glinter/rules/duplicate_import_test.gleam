@@ -1,25 +1,14 @@
-import glance
 import gleam/list
 import gleeunit/should
-import glinter/rule.{type LintResult}
 import glinter/rules/duplicate_import
-import glinter/walker
-
-fn lint_string(source: String) -> List(LintResult) {
-  let assert Ok(module) = glance.module(source)
-  let r = duplicate_import.rule()
-  let data = walker.collect(module)
-  r.check(data, source)
-  |> list.map(fn(result) {
-    rule.LintResult(..result, file: "test.gleam", severity: r.default_severity)
-  })
-}
+import glinter/test_helpers
 
 pub fn detects_duplicate_import_test() {
   let results =
-    lint_string(
+    test_helpers.lint_string(
       "import gleam/list
        import gleam/list",
+      duplicate_import.rule(),
     )
   list.length(results) |> should.equal(1)
   let assert [result] = results
@@ -30,25 +19,28 @@ pub fn detects_duplicate_import_test() {
 
 pub fn ignores_unique_imports_test() {
   let results =
-    lint_string(
+    test_helpers.lint_string(
       "import gleam/list
        import gleam/string",
+      duplicate_import.rule(),
     )
   list.length(results) |> should.equal(0)
 }
 
 pub fn ignores_single_import_test() {
-  let results = lint_string("import gleam/list")
+  let results =
+    test_helpers.lint_string("import gleam/list", duplicate_import.rule())
   list.length(results) |> should.equal(0)
 }
 
 pub fn detects_triple_import_test() {
   let results =
-    lint_string(
+    test_helpers.lint_string(
       "import gleam/list
        import gleam/string
        import gleam/list
        import gleam/list",
+      duplicate_import.rule(),
     )
   list.length(results) |> should.equal(2)
 }

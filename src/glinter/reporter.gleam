@@ -189,9 +189,8 @@ fn format_number(n: Int) -> String {
   case n < 1000 {
     True -> int.to_string(n)
     False -> {
-      let thousands = n / 1000
       let remainder = n % 1000
-      int.to_string(thousands)
+      format_number(n / 1000)
       <> ","
       <> string.pad_start(int.to_string(remainder), to: 3, with: "0")
     }

@@ -1,8 +1,12 @@
+/// NOTE: Expression tree traversal here must stay in sync with walker.gleam,
+/// analysis.gleam, rules/missing_labels.gleam, and unused_exports.gleam
+/// when glance adds new expression variants.
+
 import glance.{type Expression, type Statement}
 import gleam/int
 import gleam/list
 import gleam/option.{None, Some}
-import glinter/rule.{type Rule, LintResult, Rule, Warning}
+import glinter/rule.{type Rule, Rule, RuleResult, Warning}
 
 const threshold = 5
 
@@ -10,7 +14,7 @@ pub fn rule() -> Rule {
   Rule(name: "deep_nesting", default_severity: Warning, needs_collect: False, check: check)
 }
 
-fn check(data: rule.ModuleData, _source: String) -> List(rule.LintResult) {
+fn check(data: rule.ModuleData, _source: String) -> List(rule.RuleResult) {
   data.module.functions
   |> list.flat_map(fn(def) { check_stmts_depth(def.definition.body, 1) })
 }
@@ -18,12 +22,12 @@ fn check(data: rule.ModuleData, _source: String) -> List(rule.LintResult) {
 fn check_stmts_depth(
   stmts: List(Statement),
   depth: Int,
-) -> List(rule.LintResult) {
+) -> List(rule.RuleResult) {
   stmts
   |> list.flat_map(fn(stmt) { check_stmt_depth(stmt, depth) })
 }
 
-fn check_stmt_depth(stmt: Statement, depth: Int) -> List(rule.LintResult) {
+fn check_stmt_depth(stmt: Statement, depth: Int) -> List(rule.RuleResult) {
   case stmt {
     glance.Expression(expr) -> check_expr_depth(expr, depth)
     glance.Assignment(value: expr, ..) -> check_expr_depth(expr, depth)
@@ -32,16 +36,14 @@ fn check_stmt_depth(stmt: Statement, depth: Int) -> List(rule.LintResult) {
   }
 }
 
-fn check_expr_depth(expr: Expression, depth: Int) -> List(rule.LintResult) {
+fn check_expr_depth(expr: Expression, depth: Int) -> List(rule.RuleResult) {
   case expr {
     glance.Block(location, stmts) -> {
       let new_depth = depth + 1
       case new_depth > threshold {
         True -> [
-          LintResult(
+          RuleResult(
             rule: "deep_nesting",
-            severity: Warning,
-            file: "",
             location: location,
             message: "Nesting is "
               <> int.to_string(new_depth)
@@ -56,10 +58,8 @@ fn check_expr_depth(expr: Expression, depth: Int) -> List(rule.LintResult) {
       let new_depth = depth + 1
       case new_depth > threshold {
         True -> [
-          LintResult(
+          RuleResult(
             rule: "deep_nesting",
-            severity: Warning,
-            file: "",
             location: location,
             message: "Nesting is "
               <> int.to_string(new_depth)
@@ -84,10 +84,8 @@ fn check_expr_depth(expr: Expression, depth: Int) -> List(rule.LintResult) {
       let new_depth = depth + 1
       case new_depth > threshold {
         True -> [
-          LintResult(
+          RuleResult(
             rule: "deep_nesting",
-            severity: Warning,
-            file: "",
             location: location,
             message: "Nesting is "
               <> int.to_string(new_depth)
