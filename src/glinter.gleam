@@ -85,22 +85,27 @@ pub fn main() {
     |> list.map(fn(f) { strip_prefix(f, project_prefix) })
     |> list.filter(fn(f) { !ignore.is_file_excluded(f, cfg.exclude) })
 
-  let #(rev_results, rev_sources) =
-    files
-    |> list.fold(#([], []), fn(acc, file_path) {
-      let #(acc_results, acc_sources) = acc
-      // Read from the absolute path, but use relative path for reporting
-      let read_path = project_prefix <> file_path
-      case lint_file(read_path, file_path, rules, cfg) {
-        Ok(#(file_results, source)) -> #(
-          list.append(list.reverse(file_results), acc_results),
-          [#(file_path, source), ..acc_sources],
+  let file_outputs =
+    pmap(
+      fn(file_path) {
+        let read_path = project_prefix <> file_path
+        lint_file(read_path, file_path, rules, cfg)
+      },
+      files,
+    )
+
+  let #(per_file_results, sources) =
+    file_outputs
+    |> list.fold(#([], []), fn(acc, result) {
+      case result {
+        Ok(#(file_results, file_path, source)) -> #(
+          list.append(acc.0, file_results),
+          [#(file_path, source), ..acc.1],
         )
         Error(_) -> acc
       }
     })
-  let per_file_results = list.reverse(rev_results)
-  let sources = list.reverse(rev_sources)
+  let sources = list.reverse(sources)
 
   // Cross-module: unused exports detection
   let unused_export_results = run_unused_exports(sources, project_prefix, cfg)
@@ -210,7 +215,7 @@ fn lint_file(
   display_path: String,
   rules: List(Rule),
   cfg: config.Config,
-) -> Result(#(List(rule.LintResult), String), Nil) {
+) -> Result(#(List(rule.LintResult), String, String), Nil) {
   case simplifile.read(read_path) {
     Error(_) -> {
       io.println_error("Error: Could not read " <> read_path)
@@ -246,7 +251,7 @@ fn lint_file(
                 )
               })
             })
-          Ok(#(file_results, source))
+          Ok(#(file_results, display_path, source))
         }
       }
     }
@@ -365,3 +370,6 @@ fn halt(status: Int) -> Nil
 
 @external(erlang, "glinter_ffi", "monotonic_time_ms")
 fn monotonic_time_ms() -> Int
+
+@external(erlang, "glinter_ffi", "pmap")
+fn pmap(func: fn(a) -> b, items: List(a)) -> List(b)
