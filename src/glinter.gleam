@@ -28,6 +28,8 @@ import glinter/rules/redundant_case
 import glinter/rules/short_variable_name
 import glinter/rules/string_inspect
 import glinter/rules/todo_without_message
+import glinter/rules/trailing_underscore
+import glinter/rules/unnecessary_string_concatenation
 import glinter/rules/unnecessary_variable
 import glinter/rules/unqualified_import
 import glinter/rules/unwrap_used
@@ -66,6 +68,8 @@ pub fn main() {
     duplicate_import.rule(),
     todo_without_message.rule(),
     unqualified_import.rule(),
+    unnecessary_string_concatenation.rule(),
+    trailing_underscore.rule(),
   ]
   let rules = apply_config(all_rules, cfg)
 

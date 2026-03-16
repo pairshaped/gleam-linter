@@ -76,6 +76,8 @@ done
 - **unnecessary_variable** (warning): flags `let x = expr; x` (assigned then immediately returned)
 - **redundant_case** (warning): flags `case` expressions with a single branch and no guard
 - **prefer_guard_clause** (warning): flags `case bool { True -> ... False -> ... }` patterns that could use `bool.guard`
+- **unnecessary_string_concatenation** (warning): flags concatenation with an empty string (`x <> ""`) and concatenation of two string literals (`"foo" <> "bar"`)
+- **trailing_underscore** (warning): flags function names ending with `_`
 
 ### Complexity
 
@@ -134,6 +136,8 @@ unqualified_import = "warning"
 panic_without_message = "warning"
 string_inspect = "warning"
 duplicate_import = "warning"
+unnecessary_string_concatenation = "warning"
+trailing_underscore = "warning"
 ffi_usage = "off"  # off by default
 ```
 
