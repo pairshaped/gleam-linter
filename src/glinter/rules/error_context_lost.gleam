@@ -17,19 +17,11 @@ fn check(data: rule.ModuleData, _source: String) -> List(rule.RuleResult) {
 
 fn check_expression(expr: glance.Expression) -> List(rule.RuleResult) {
   case expr {
-    // result.replace_error always discards the original error
-    glance.Call(
-      location,
-      glance.FieldAccess(_, glance.Variable(_, "result"), "replace_error"),
-      _,
-    ) -> [
-      RuleResult(
-        rule: "error_context_lost",
-        location: location,
-        message: "result.replace_error discards the original error — consider result.map_error to wrap it instead",
-      ),
-    ]
-    // result.map_error with fn(_) { ... } discards the original error
+    // result.map_error with fn(_) { ... } discards the original error.
+    // Note: replace_error is NOT flagged — it's the correct tool for
+    // upgrading Nil errors (from list.find, int.parse, etc.) into
+    // domain errors. If you don't need the original error, replace_error
+    // is the right choice.
     glance.Call(
       location,
       glance.FieldAccess(_, glance.Variable(_, "result"), "map_error"),
