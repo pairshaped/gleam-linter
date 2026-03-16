@@ -17,6 +17,7 @@ import glinter/rules/deep_nesting
 import glinter/rules/discarded_result
 import glinter/rules/duplicate_import
 import glinter/rules/echo_rule
+import glinter/rules/error_context_lost
 import glinter/rules/function_complexity
 import glinter/rules/label_possible
 import glinter/rules/missing_labels
@@ -26,7 +27,9 @@ import glinter/rules/panic_without_message
 import glinter/rules/prefer_guard_clause
 import glinter/rules/redundant_case
 import glinter/rules/short_variable_name
+import glinter/rules/stringly_typed_error
 import glinter/rules/string_inspect
+import glinter/rules/thrown_away_error
 import glinter/rules/todo_without_message
 import glinter/rules/trailing_underscore
 import glinter/rules/unnecessary_string_concatenation
@@ -70,6 +73,9 @@ pub fn main() {
     unqualified_import.rule(),
     unnecessary_string_concatenation.rule(),
     trailing_underscore.rule(),
+    error_context_lost.rule(),
+    stringly_typed_error.rule(),
+    thrown_away_error.rule(),
   ]
   let rules = apply_config(all_rules, cfg)
 
