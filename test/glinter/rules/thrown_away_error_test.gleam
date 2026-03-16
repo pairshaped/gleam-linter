@@ -33,6 +33,15 @@ pub fn ignores_non_error_discard_test() {
   let assert True = results == []
 }
 
+pub fn ignores_error_nil_pattern_test() {
+  let results =
+    test_helpers.lint_string(
+      "pub fn ok(r) { case r { Ok(v) -> v \n Error(Nil) -> 0 } }",
+      thrown_away_error.rule(),
+    )
+  let assert True = results == []
+}
+
 pub fn detects_named_discard_error_test() {
   let results =
     test_helpers.lint_string(
