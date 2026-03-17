@@ -585,17 +585,25 @@ fn visit_expression_children(
 
     glance.Fn(_, _, _, body) -> visit_statements(schema, body, #([], context))
 
-    // Case: recurse into subjects, then clause bodies
+    // Case: recurse into subjects, then clause guards and bodies
     glance.Case(_, subjects, clauses) -> {
       let #(subject_errors, context) =
         visit_expression_list(schema, subjects, context)
       let #(clause_errors, context) =
         list.fold(clauses, #([], context), fn(acc, clause) {
           let #(errors_so_far, ctx) = acc
+          // Visit guard expression if present
+          let #(guard_errors, ctx) = case clause.guard {
+            Some(guard_expr) -> {
+              let guard_span = expression_span(guard_expr)
+              visit_expression(schema, guard_expr, guard_span, ctx)
+            }
+            None -> #([], ctx)
+          }
           let body_span = expression_span(clause.body)
-          let #(new_errors, new_ctx) =
+          let #(body_errors, new_ctx) =
             visit_expression(schema, clause.body, body_span, ctx)
-          #(list.append(errors_so_far, new_errors), new_ctx)
+          #(list.flatten([errors_so_far, guard_errors, body_errors]), new_ctx)
         })
       #(list.append(subject_errors, clause_errors), context)
     }
@@ -638,10 +646,23 @@ fn visit_expression_children(
       #(list.append(left_errors, right_errors), context)
     }
 
-    // Single-child wrappers
-    glance.Echo(_, Some(inner), _) -> {
-      let inner_span = expression_span(inner)
-      visit_expression(schema, inner, inner_span, context)
+    // Echo: recurse into expression and message (both optional)
+    glance.Echo(_, expression_opt, message_opt) -> {
+      let #(expr_errors, context) = case expression_opt {
+        Some(inner) -> {
+          let inner_span = expression_span(inner)
+          visit_expression(schema, inner, inner_span, context)
+        }
+        None -> #([], context)
+      }
+      let #(msg_errors, context) = case message_opt {
+        Some(msg) -> {
+          let msg_span = expression_span(msg)
+          visit_expression(schema, msg, msg_span, context)
+        }
+        None -> #([], context)
+      }
+      #(list.append(expr_errors, msg_errors), context)
     }
     glance.Panic(_, Some(inner)) -> {
       let inner_span = expression_span(inner)
@@ -716,8 +737,7 @@ fn visit_expression_children(
     | glance.String(_, _)
     | glance.Variable(_, _)
     | glance.Panic(_, None)
-    | glance.Todo(_, None)
-    | glance.Echo(_, None, _) -> #([], context)
+    | glance.Todo(_, None) -> #([], context)
   }
 }
 

@@ -331,3 +331,74 @@ pub fn project_rule_runs_across_files_test() {
   let assert [err] = errors
   let assert True = rule.error_message(err) == "Too many imports across project"
 }
+
+// --- Test: case guard expressions are visited ---
+
+pub fn case_guard_expression_is_visited_test() {
+  // Use an expression visitor that flags any BinaryOperator (the guard `y > 0`)
+  let r =
+    rule.new_with_context(name: "find_binary_ops", initial: 0)
+    |> rule.with_expression_enter_visitor(visitor: fn(expression, _span, count) {
+      case expression {
+        glance.BinaryOperator(..) -> #([], count + 1)
+        _ -> #([], count)
+      }
+    })
+    |> rule.with_final_evaluation(evaluator: fn(count) {
+      case count > 0 {
+        True -> [
+          rule.error(
+            message: "Found binary op in guard",
+            details: "",
+            location: glance.Span(start: 0, end: 0),
+          ),
+        ]
+        False -> []
+      }
+    })
+    |> rule.to_module_rule()
+
+  // The only BinaryOperator is inside the case guard: `x > 0`
+  let source = "pub fn check(x) { case x { y if y > 0 -> y _ -> 0 } }"
+  let assert Ok(module) = glance.module(source)
+  let errors = rule.run_on_module(rule: r, module: module, source: source)
+  let assert True = list.length(errors) == 1
+  let assert [err] = errors
+  let assert True = rule.error_message(err) == "Found binary op in guard"
+}
+
+// --- Test: echo message expression is visited ---
+
+pub fn echo_message_expression_is_visited_test() {
+  // Use an expression visitor that counts String expressions
+  let r =
+    rule.new_with_context(name: "count_strings", initial: 0)
+    |> rule.with_expression_enter_visitor(visitor: fn(expression, _span, count) {
+      case expression {
+        glance.String(..) -> #([], count + 1)
+        _ -> #([], count)
+      }
+    })
+    |> rule.with_final_evaluation(evaluator: fn(count) {
+      // echo "hello" x has two expressions: x and "hello" (message)
+      // Plus the function body has the echo itself
+      // We expect at least 1 string from the message
+      case count > 0 {
+        True -> [
+          rule.error(
+            message: "Found string expression",
+            details: "",
+            location: glance.Span(start: 0, end: 0),
+          ),
+        ]
+        False -> []
+      }
+    })
+    |> rule.to_module_rule()
+
+  // "hello" is the message argument to echo
+  let source = "pub fn main() { echo \"hello\" 1 }"
+  let assert Ok(module) = glance.module(source)
+  let errors = rule.run_on_module(rule: r, module: module, source: source)
+  let assert True = list.length(errors) == 1
+}
