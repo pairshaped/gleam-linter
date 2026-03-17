@@ -8,3 +8,8 @@ docs/
 # Dolt database files (added by bd init)
 .dolt/
 *.db
+
+# AGENTS
+AGENTS.md
+CLAUDE.md
+GEMINI.md
