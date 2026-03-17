@@ -9,7 +9,7 @@ import glinter/config
 import glinter/ffi_usage
 import glinter/ignore
 import glinter/reporter.{Json, Text}
-import glinter/rule.{type V2Rule, V2Rule}
+import glinter/rule
 import glinter/rules/assert_ok_pattern
 import glinter/rules/avoid_panic
 import glinter/rules/avoid_todo
@@ -38,7 +38,6 @@ import glinter/rules/unqualified_import
 import glinter/rules/unwrap_used
 import glinter/runner
 import glinter/unused_exports
-import glinter/walker
 import simplifile
 
 pub fn main() {
@@ -50,7 +49,7 @@ pub fn main() {
   let cfg = load_config(config_path)
   let show_stats = show_stats || cfg.stats
 
-  // v3 rules (native Rule type — no conversion needed)
+  // Module rules (per-file AST analysis)
   let v3_rules = [
     avoid_panic.rule(),
     avoid_todo.rule(),
@@ -79,10 +78,6 @@ pub fn main() {
     unnecessary_variable.rule(),
     discarded_result.rule(),
   ]
-
-  // v2 rules (still need from_v2_rule conversion)
-  let v2_rules = []
-  let rules = apply_config(v2_rules, cfg)
 
   // Resolve paths: CLI args > config include > default src/
   let effective_paths = case paths {
@@ -127,21 +122,17 @@ pub fn main() {
   let parsed_files = list.reverse(parsed_files)
   let sources = list.reverse(sources)
 
-  // Convert V2 rules and combine with native v3 rules
-  let converted_v2_rules =
-    list.map(rules, fn(r) {
-      rule.from_v2_rule(v2: r, module_data_builder: build_module_data)
-    })
-  let v3_filtered = apply_v3_config(v3_rules, cfg)
-  let all_rules = list.append(v3_filtered, converted_v2_rules)
+  let all_rules = apply_v3_config(v3_rules, cfg)
   let per_file_results =
     runner.run(rules: all_rules, files: parsed_files, config: cfg)
 
-  // Cross-module: unused exports detection (special-cased until ported)
+  // Cross-module: unused exports detection (special-cased — needs file paths
+  // and src/test distinction that the project rule API doesn't yet provide)
   let unused_export_results = run_unused_exports(sources, project_prefix, cfg)
   let results = list.append(per_file_results, unused_export_results)
 
-  // Cross-file: FFI usage detection (special-cased until ported)
+  // Cross-file: FFI usage detection (special-cased — scans .mjs files,
+  // not Gleam AST)
   let ffi_results = run_ffi_usage(effective_paths, project_prefix, cfg)
   let results = list.append(results, ffi_results)
 
@@ -241,26 +232,6 @@ fn load_config(path: String) -> config.Config {
         Ok(cfg) -> cfg
       }
   }
-}
-
-fn apply_config(rules: List(V2Rule), cfg: config.Config) -> List(V2Rule) {
-  rules
-  |> list.filter_map(fn(r) {
-    // Apply config override, or keep default
-    let resolved = case dict.get(cfg.rules, r.name) {
-      Ok(None) -> V2Rule(..r, default_severity: rule.Off)
-      Ok(Some(config.SeverityError)) ->
-        V2Rule(..r, default_severity: rule.Error)
-      Ok(Some(config.SeverityWarning)) ->
-        V2Rule(..r, default_severity: rule.Warning)
-      Error(_) -> r
-    }
-    // Filter out Off rules
-    case resolved.default_severity {
-      rule.Off -> Error(Nil)
-      _ -> Ok(resolved)
-    }
-  })
 }
 
 fn apply_v3_config(
@@ -395,18 +366,6 @@ fn run_ffi_usage(
         !ignore.is_rule_ignored(r.file, "ffi_usage", cfg.ignore)
       })
     }
-  }
-}
-
-/// Build ModuleData from a parsed module, using walker when needs_collect is True.
-/// Passed to rule.from_v2_rule to avoid an import cycle between rule and walker.
-fn build_module_data(
-  module: glance.Module,
-  needs_collect: Bool,
-) -> rule.ModuleData {
-  case needs_collect {
-    True -> walker.collect(module)
-    False -> walker.module_only(module)
   }
 }
 
