@@ -5,7 +5,7 @@ import glinter/test_helpers
 
 pub fn detects_true_false_case_test() {
   let results =
-    test_helpers.lint_string(
+    test_helpers.lint_string_rule(
       "pub fn f(x) {
         case x {
           True -> { do_something() \n do_more() }
@@ -22,7 +22,7 @@ pub fn detects_true_false_case_test() {
 
 pub fn detects_false_true_order_test() {
   let results =
-    test_helpers.lint_string(
+    test_helpers.lint_string_rule(
       "pub fn f(x) {
         case x {
           False -> Error(Nil)
@@ -36,7 +36,7 @@ pub fn detects_false_true_order_test() {
 
 pub fn ignores_multi_branch_case_test() {
   let results =
-    test_helpers.lint_string(
+    test_helpers.lint_string_rule(
       "pub fn f(x) {
         case x {
           True -> 1
@@ -51,7 +51,7 @@ pub fn ignores_multi_branch_case_test() {
 
 pub fn ignores_non_boolean_patterns_test() {
   let results =
-    test_helpers.lint_string(
+    test_helpers.lint_string_rule(
       "pub fn f(x) {
         case x {
           Ok(v) -> v
@@ -65,7 +65,7 @@ pub fn ignores_non_boolean_patterns_test() {
 
 pub fn ignores_case_with_guard_test() {
   let results =
-    test_helpers.lint_string(
+    test_helpers.lint_string_rule(
       "pub fn f(x) {
         case x {
           True if x -> 1
@@ -79,7 +79,7 @@ pub fn ignores_case_with_guard_test() {
 
 pub fn ignores_multi_statement_body_test() {
   let results =
-    test_helpers.lint_string(
+    test_helpers.lint_string_rule(
       "pub fn f(x) {
         let y = compute()
         case x {
@@ -94,7 +94,7 @@ pub fn ignores_multi_statement_body_test() {
 
 pub fn ignores_both_branches_block_test() {
   let results =
-    test_helpers.lint_string(
+    test_helpers.lint_string_rule(
       "pub fn f(x) {
         case x {
           True -> { do_a() \n do_b() }

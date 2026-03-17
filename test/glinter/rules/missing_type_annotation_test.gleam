@@ -4,7 +4,7 @@ import glinter/test_helpers
 
 pub fn detects_missing_return_type_test() {
   let results =
-    test_helpers.lint_string(
+    test_helpers.lint_string_rule(
       "pub fn greet() { \"hello\" }",
       missing_type_annotation.rule(),
     )
@@ -17,7 +17,7 @@ pub fn detects_missing_return_type_test() {
 
 pub fn ignores_annotated_return_type_test() {
   let results =
-    test_helpers.lint_string(
+    test_helpers.lint_string_rule(
       "pub fn greet() -> String { \"hello\" }",
       missing_type_annotation.rule(),
     )
@@ -26,7 +26,7 @@ pub fn ignores_annotated_return_type_test() {
 
 pub fn detects_missing_param_type_test() {
   let results =
-    test_helpers.lint_string(
+    test_helpers.lint_string_rule(
       "pub fn greet(name) -> String { name }",
       missing_type_annotation.rule(),
     )
@@ -38,7 +38,7 @@ pub fn detects_missing_param_type_test() {
 
 pub fn ignores_annotated_param_type_test() {
   let results =
-    test_helpers.lint_string(
+    test_helpers.lint_string_rule(
       "pub fn greet(name: String) -> String { name }",
       missing_type_annotation.rule(),
     )
@@ -47,7 +47,7 @@ pub fn ignores_annotated_param_type_test() {
 
 pub fn detects_multiple_missing_annotations_test() {
   let results =
-    test_helpers.lint_string(
+    test_helpers.lint_string_rule(
       "pub fn add(a, b) { a }",
       missing_type_annotation.rule(),
     )
@@ -57,7 +57,7 @@ pub fn detects_multiple_missing_annotations_test() {
 
 pub fn detects_on_private_functions_test() {
   let results =
-    test_helpers.lint_string(
+    test_helpers.lint_string_rule(
       "fn helper(x) { x }",
       missing_type_annotation.rule(),
     )
@@ -67,7 +67,7 @@ pub fn detects_on_private_functions_test() {
 
 pub fn fully_annotated_private_function_test() {
   let results =
-    test_helpers.lint_string(
+    test_helpers.lint_string_rule(
       "fn helper(x: Int) -> Int { x }",
       missing_type_annotation.rule(),
     )

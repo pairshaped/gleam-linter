@@ -4,7 +4,7 @@ import glinter/test_helpers
 
 pub fn detects_duplicate_import_test() {
   let results =
-    test_helpers.lint_string(
+    test_helpers.lint_string_rule(
       "import gleam/list
        import gleam/list",
       duplicate_import.rule(),
@@ -18,7 +18,7 @@ pub fn detects_duplicate_import_test() {
 
 pub fn ignores_unique_imports_test() {
   let results =
-    test_helpers.lint_string(
+    test_helpers.lint_string_rule(
       "import gleam/list
        import gleam/string",
       duplicate_import.rule(),
@@ -28,13 +28,13 @@ pub fn ignores_unique_imports_test() {
 
 pub fn ignores_single_import_test() {
   let results =
-    test_helpers.lint_string("import gleam/list", duplicate_import.rule())
+    test_helpers.lint_string_rule("import gleam/list", duplicate_import.rule())
   let assert True = results == []
 }
 
 pub fn detects_triple_import_test() {
   let results =
-    test_helpers.lint_string(
+    test_helpers.lint_string_rule(
       "import gleam/list
        import gleam/string
        import gleam/list

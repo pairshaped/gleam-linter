@@ -1,24 +1,18 @@
 import glance
-import gleam/list
 import gleam/option.{None}
-import glinter/rule.{type V2Rule, RuleResult, V2Rule, Warning}
+import glinter/rule
 
-pub fn rule() -> V2Rule {
-  V2Rule(
-    name: "prefer_guard_clause",
-    default_severity: Warning,
-    needs_collect: False,
-    check: check,
-  )
+pub fn rule() -> rule.Rule {
+  rule.new(name: "prefer_guard_clause")
+  |> rule.with_simple_function_visitor(visitor: check_function)
+  |> rule.to_module_rule()
 }
 
-fn check(data: rule.ModuleData, _source: String) -> List(rule.RuleResult) {
-  data.module.functions
-  |> list.flat_map(fn(def) { check_function(def.definition) })
-}
-
-fn check_function(func: glance.Function) -> List(rule.RuleResult) {
-  case func.body {
+fn check_function(
+  function: glance.Function,
+  _span: glance.Span,
+) -> List(rule.RuleError) {
+  case function.body {
     [glance.Expression(glance.Case(location, _, [clause_a, clause_b]))] ->
       case
         clause_a.guard == None
@@ -27,10 +21,10 @@ fn check_function(func: glance.Function) -> List(rule.RuleResult) {
         && has_simple_branch(clause_a, clause_b)
       {
         True -> [
-          RuleResult(
-            rule: "prefer_guard_clause",
-            location: location,
+          rule.error(
             message: "Consider using 'use <- bool.guard' instead of case True/False",
+            details: "Guard clauses reduce nesting and improve readability for boolean branches.",
+            location: location,
           ),
         ]
         False -> []

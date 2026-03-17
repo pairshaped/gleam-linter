@@ -1,39 +1,35 @@
 import glance
 import gleam/list
 import gleam/string
-import glinter/rule.{type V2Rule, RuleResult, V2Rule, Warning}
+import glinter/rule
 
-pub fn rule() -> V2Rule {
-  V2Rule(
-    name: "unqualified_import",
-    default_severity: Warning,
-    needs_collect: False,
-    check: check,
-  )
+pub fn rule() -> rule.Rule {
+  rule.new(name: "unqualified_import")
+  |> rule.with_simple_import_visitor(visitor: check_import)
+  |> rule.to_module_rule()
 }
 
-fn check(data: rule.ModuleData, _source: String) -> List(rule.RuleResult) {
-  data.module.imports
-  |> list.flat_map(fn(def) {
-    let glance.Definition(_, import_) = def
-    import_.unqualified_values
-    |> list.filter_map(fn(uq) {
-      // Allow PascalCase constructors (Some, None, Ok, Error, etc.)
-      // Only flag snake_case functions and constants
-      case is_lowercase_start(uq.name) {
-        True ->
-          Ok(RuleResult(
-            rule: "unqualified_import",
-            location: import_.location,
-            message: "Function '"
-              <> uq.name
-              <> "' is imported unqualified from '"
-              <> import_.module
-              <> "', use qualified access instead",
-          ))
-        False -> Error(Nil)
-      }
-    })
+fn check_import(
+  definition: glance.Definition(glance.Import),
+) -> List(rule.RuleError) {
+  let import_ = definition.definition
+  import_.unqualified_values
+  |> list.filter_map(fn(uq) {
+    // Allow PascalCase constructors (Some, None, Ok, Error, etc.)
+    // Only flag snake_case functions and constants
+    case is_lowercase_start(uq.name) {
+      True ->
+        Ok(rule.error(
+          message: "Function '"
+            <> uq.name
+            <> "' is imported unqualified from '"
+            <> import_.module
+            <> "', use qualified access instead",
+          details: "Use qualified access (e.g., module.function) for better readability.",
+          location: import_.location,
+        ))
+      False -> Error(Nil)
+    }
   })
 }
 

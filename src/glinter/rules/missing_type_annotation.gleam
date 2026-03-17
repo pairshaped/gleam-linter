@@ -1,38 +1,33 @@
 import glance
 import gleam/list
 import gleam/option.{None, Some}
-import glinter/rule.{type V2Rule, RuleResult, V2Rule, Warning}
+import glinter/rule
 
-pub fn rule() -> V2Rule {
-  V2Rule(
-    name: "missing_type_annotation",
-    default_severity: Warning,
-    needs_collect: False,
-    check: check,
-  )
+pub fn rule() -> rule.Rule {
+  rule.new(name: "missing_type_annotation")
+  |> rule.with_simple_function_visitor(visitor: check_function)
+  |> rule.to_module_rule()
 }
 
-fn check(data: rule.ModuleData, _source: String) -> List(rule.RuleResult) {
-  data.module.functions
-  |> list.flat_map(fn(def) { check_function(def.definition) })
-}
-
-fn check_function(func: glance.Function) -> List(rule.RuleResult) {
-  let return_result = case func.return {
+fn check_function(
+  function: glance.Function,
+  span: glance.Span,
+) -> List(rule.RuleError) {
+  let return_result = case function.return {
     None -> [
-      RuleResult(
-        rule: "missing_type_annotation",
-        location: func.location,
+      rule.error(
         message: "Function '"
-          <> func.name
+          <> function.name
           <> "' is missing a return type annotation",
+        details: "Add a return type annotation to improve readability and catch type errors early.",
+        location: span,
       ),
     ]
     Some(_) -> []
   }
 
   let param_results =
-    func.parameters
+    function.parameters
     |> list.filter_map(fn(param) {
       case param.type_ {
         None -> {
@@ -40,14 +35,14 @@ fn check_function(func: glance.Function) -> List(rule.RuleResult) {
             glance.Named(n) -> n
             glance.Discarded(n) -> "_" <> n
           }
-          Ok(RuleResult(
-            rule: "missing_type_annotation",
-            location: func.location,
+          Ok(rule.error(
             message: "Function '"
-              <> func.name
+              <> function.name
               <> "' has untyped parameter '"
               <> name
               <> "'",
+            details: "Add a type annotation to this parameter.",
+            location: span,
           ))
         }
         Some(_) -> Error(Nil)

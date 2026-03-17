@@ -1,37 +1,32 @@
 import glance
 import gleam/int
-import gleam/list
 import glinter/analysis
-import glinter/rule.{type V2Rule, Off, RuleResult, V2Rule}
+import glinter/rule
 
 const threshold = 10
 
-pub fn rule() -> V2Rule {
-  V2Rule(
-    name: "function_complexity",
-    default_severity: Off,
-    needs_collect: False,
-    check: check,
-  )
+pub fn rule() -> rule.Rule {
+  rule.new(name: "function_complexity")
+  |> rule.with_default_severity(severity: rule.Off)
+  |> rule.with_simple_function_visitor(visitor: check_function)
+  |> rule.to_module_rule()
 }
 
-fn check(data: rule.ModuleData, _source: String) -> List(rule.RuleResult) {
-  data.module.functions
-  |> list.flat_map(fn(def) { check_function(def.definition) })
-}
-
-fn check_function(func: glance.Function) -> List(rule.RuleResult) {
-  let count = analysis.count_branches(func.body)
+fn check_function(
+  function: glance.Function,
+  span: glance.Span,
+) -> List(rule.RuleError) {
+  let count = analysis.count_branches(function.body)
   case count > threshold {
     True -> [
-      RuleResult(
-        rule: "function_complexity",
-        location: func.location,
+      rule.error(
         message: "Function '"
-          <> func.name
+          <> function.name
           <> "' has a complexity of "
           <> int.to_string(count)
           <> " — consider splitting into smaller functions",
+        details: "Complex functions are harder to test and maintain. Consider extracting helper functions.",
+        location: span,
       ),
     ]
     False -> []

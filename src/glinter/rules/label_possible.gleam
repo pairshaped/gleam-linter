@@ -1,24 +1,19 @@
 import glance
 import gleam/list
 import gleam/option.{None}
-import glinter/rule.{type V2Rule, RuleResult, V2Rule, Warning}
+import glinter/rule
 
-pub fn rule() -> V2Rule {
-  V2Rule(
-    name: "label_possible",
-    default_severity: Warning,
-    needs_collect: False,
-    check: check,
-  )
+pub fn rule() -> rule.Rule {
+  rule.new(name: "label_possible")
+  |> rule.with_simple_function_visitor(visitor: check_function)
+  |> rule.to_module_rule()
 }
 
-fn check(data: rule.ModuleData, _source: String) -> List(rule.RuleResult) {
-  data.module.functions
-  |> list.flat_map(fn(def) { check_function(def.definition) })
-}
-
-fn check_function(func: glance.Function) -> List(rule.RuleResult) {
-  let params = func.parameters
+fn check_function(
+  function: glance.Function,
+  span: glance.Span,
+) -> List(rule.RuleError) {
+  let params = function.parameters
   // Skip functions with fewer than 2 params, or any unlabelled discard param
   // (you can't fully label a function that has an unlabelled discard)
   let has_unlabelled_discard =
@@ -36,12 +31,12 @@ fn check_function(func: glance.Function) -> List(rule.RuleResult) {
       |> list.filter(fn(param) { param.label == None })
       |> list.map(fn(param) {
         let assert glance.Named(name) = param.name
-        RuleResult(
-          rule: "label_possible",
-          location: func.location,
+        rule.error(
           message: "Parameter '"
             <> name
             <> "' could benefit from a label for clarity at call sites",
+          details: "Labelled arguments make call sites self-documenting with zero performance cost.",
+          location: span,
         )
       })
   }

@@ -1,34 +1,27 @@
-import gleam/list
+import glance
 import gleam/string
-import glinter/rule.{type V2Rule, RuleResult, V2Rule, Warning}
+import glinter/rule
 
-pub fn rule() -> V2Rule {
-  V2Rule(
-    name: "trailing_underscore",
-    default_severity: Warning,
-    needs_collect: False,
-    check: check,
-  )
+pub fn rule() -> rule.Rule {
+  rule.new(name: "trailing_underscore")
+  |> rule.with_simple_function_visitor(visitor: check_function)
+  |> rule.to_module_rule()
 }
 
-fn check(data: rule.ModuleData, _source: String) -> List(rule.RuleResult) {
-  data.module.functions
-  |> list.filter_map(fn(def) {
-    let func = def.definition
-    case string.ends_with(func.name, "_") {
-      True ->
-        [
-          RuleResult(
-            rule: "trailing_underscore",
-            location: func.location,
-            message: "Function '"
-              <> func.name
-              <> "' has a trailing underscore — remove it",
-          ),
-        ]
-        |> Ok
-      False -> Error(Nil)
-    }
-  })
-  |> list.flatten
+fn check_function(
+  function: glance.Function,
+  span: glance.Span,
+) -> List(rule.RuleError) {
+  case string.ends_with(function.name, "_") {
+    True -> [
+      rule.error(
+        message: "Function '"
+          <> function.name
+          <> "' has a trailing underscore — remove it",
+        details: "Trailing underscores on function names are unnecessary in Gleam.",
+        location: span,
+      ),
+    ]
+    False -> []
+  }
 }

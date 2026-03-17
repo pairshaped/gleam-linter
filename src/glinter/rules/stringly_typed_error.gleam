@@ -1,37 +1,33 @@
 import glance
-import gleam/list
 import gleam/option.{Some}
-import glinter/rule.{type V2Rule, RuleResult, V2Rule, Warning}
+import glinter/rule
 
-pub fn rule() -> V2Rule {
-  V2Rule(
-    name: "stringly_typed_error",
-    default_severity: Warning,
-    needs_collect: False,
-    check: check,
-  )
+pub fn rule() -> rule.Rule {
+  rule.new(name: "stringly_typed_error")
+  |> rule.with_simple_function_visitor(visitor: check_function)
+  |> rule.to_module_rule()
 }
 
-fn check(data: rule.ModuleData, _source: String) -> List(rule.RuleResult) {
-  data.module.functions
-  |> list.filter_map(fn(def) {
-    let func = def.definition
-    case func.return {
-      Some(glance.NamedType(_, "Result", _, [_, error_type])) ->
-        case is_string_type(error_type) {
-          True ->
-            Ok(RuleResult(
-              rule: "stringly_typed_error",
-              location: func.location,
-              message: "Function '"
-                <> func.name
-                <> "' uses String as error type — use a custom error type instead",
-            ))
-          False -> Error(Nil)
-        }
-      _ -> Error(Nil)
-    }
-  })
+fn check_function(
+  function: glance.Function,
+  span: glance.Span,
+) -> List(rule.RuleError) {
+  case function.return {
+    Some(glance.NamedType(_, "Result", _, [_, error_type])) ->
+      case is_string_type(error_type) {
+        True -> [
+          rule.error(
+            message: "Function '"
+              <> function.name
+              <> "' uses String as error type — use a custom error type instead",
+            details: "Custom error types are pattern-matchable and self-documenting. String errors lose structure.",
+            location: span,
+          ),
+        ]
+        False -> []
+      }
+    _ -> []
+  }
 }
 
 fn is_string_type(t: glance.Type) -> Bool {

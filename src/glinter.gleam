@@ -64,6 +64,14 @@ pub fn main() {
     unnecessary_string_concatenation.rule(),
     error_context_lost.rule(),
     thrown_away_error.rule(),
+    missing_type_annotation.rule(),
+    function_complexity.rule(),
+    label_possible.rule(),
+    trailing_underscore.rule(),
+    stringly_typed_error.rule(),
+    prefer_guard_clause.rule(),
+    duplicate_import.rule(),
+    unqualified_import.rule(),
   ]
 
   // v2 rules (still need from_v2_rule conversion)
@@ -72,16 +80,8 @@ pub fn main() {
     short_variable_name.rule(),
     unnecessary_variable.rule(),
     deep_nesting.rule(),
-    function_complexity.rule(),
     module_complexity.rule(),
-    prefer_guard_clause.rule(),
-    label_possible.rule(),
     missing_labels.rule(),
-    missing_type_annotation.rule(),
-    duplicate_import.rule(),
-    unqualified_import.rule(),
-    trailing_underscore.rule(),
-    stringly_typed_error.rule(),
   ]
   let rules = apply_config(v2_rules, cfg)
 

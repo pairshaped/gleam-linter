@@ -5,7 +5,10 @@ import glinter/test_helpers
 
 pub fn detects_trailing_underscore_test() {
   let results =
-    test_helpers.lint_string("pub fn bad_() { 1 }", trailing_underscore.rule())
+    test_helpers.lint_string_rule(
+      "pub fn bad_() { 1 }",
+      trailing_underscore.rule(),
+    )
   let assert True = list.length(results) == 1
   let assert [result] = results
   let assert True = result.rule == "trailing_underscore"
@@ -14,7 +17,7 @@ pub fn detects_trailing_underscore_test() {
 
 pub fn detects_trailing_underscore_with_params_test() {
   let results =
-    test_helpers.lint_string(
+    test_helpers.lint_string_rule(
       "pub fn also_bad_(x: Int) { x }",
       trailing_underscore.rule(),
     )
@@ -23,7 +26,7 @@ pub fn detects_trailing_underscore_with_params_test() {
 
 pub fn ignores_normal_function_name_test() {
   let results =
-    test_helpers.lint_string(
+    test_helpers.lint_string_rule(
       "pub fn good_name() { 1 }",
       trailing_underscore.rule(),
     )
@@ -32,7 +35,7 @@ pub fn ignores_normal_function_name_test() {
 
 pub fn ignores_underscore_in_middle_test() {
   let results =
-    test_helpers.lint_string(
+    test_helpers.lint_string_rule(
       "pub fn has_underscore() { 1 }",
       trailing_underscore.rule(),
     )

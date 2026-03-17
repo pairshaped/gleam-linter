@@ -4,7 +4,7 @@ import glinter/test_helpers
 
 pub fn detects_unqualified_function_import_test() {
   let results =
-    test_helpers.lint_string(
+    test_helpers.lint_string_rule(
       "import gleam/list.{map}",
       unqualified_import.rule(),
     )
@@ -18,7 +18,7 @@ pub fn detects_unqualified_function_import_test() {
 
 pub fn detects_multiple_unqualified_function_imports_test() {
   let results =
-    test_helpers.lint_string(
+    test_helpers.lint_string_rule(
       "import gleam/list.{map, filter, fold}",
       unqualified_import.rule(),
     )
@@ -27,13 +27,16 @@ pub fn detects_multiple_unqualified_function_imports_test() {
 
 pub fn ignores_qualified_import_test() {
   let results =
-    test_helpers.lint_string("import gleam/list", unqualified_import.rule())
+    test_helpers.lint_string_rule(
+      "import gleam/list",
+      unqualified_import.rule(),
+    )
   let assert True = results == []
 }
 
 pub fn ignores_unqualified_type_import_test() {
   let results =
-    test_helpers.lint_string(
+    test_helpers.lint_string_rule(
       "import gleam/option.{type Option}",
       unqualified_import.rule(),
     )
@@ -42,7 +45,7 @@ pub fn ignores_unqualified_type_import_test() {
 
 pub fn ignores_constructor_imports_test() {
   let results =
-    test_helpers.lint_string(
+    test_helpers.lint_string_rule(
       "import gleam/option.{type Option, None, Some}",
       unqualified_import.rule(),
     )
@@ -52,7 +55,7 @@ pub fn ignores_constructor_imports_test() {
 
 pub fn ignores_aliased_import_test() {
   let results =
-    test_helpers.lint_string(
+    test_helpers.lint_string_rule(
       "import gleam/list as l",
       unqualified_import.rule(),
     )
@@ -61,7 +64,7 @@ pub fn ignores_aliased_import_test() {
 
 pub fn mixed_constructors_and_functions_test() {
   let results =
-    test_helpers.lint_string(
+    test_helpers.lint_string_rule(
       "import gleam/option.{type Option, None, Some, unwrap}",
       unqualified_import.rule(),
     )

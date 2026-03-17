@@ -1,34 +1,29 @@
 import glance
-import gleam/list
-import glinter/rule.{type V2Rule, RuleResult, V2Rule, Warning}
+import gleam/set
+import glinter/rule
 
-pub fn rule() -> V2Rule {
-  V2Rule(
-    name: "duplicate_import",
-    default_severity: Warning,
-    needs_collect: False,
-    check: check,
-  )
+pub fn rule() -> rule.Rule {
+  rule.new_with_context(name: "duplicate_import", initial: set.new())
+  |> rule.with_import_visitor(visitor: check_import)
+  |> rule.to_module_rule()
 }
 
-fn check(data: rule.ModuleData, _source: String) -> List(rule.RuleResult) {
-  data.module.imports
-  |> list.fold(#([], []), fn(acc, def) {
-    let #(seen, results) = acc
-    let glance.Definition(_, import_) = def
-    case list.contains(seen, import_.module) {
-      True -> #(seen, [
-        RuleResult(
-          rule: "duplicate_import",
-          location: import_.location,
-          message: "Module '"
-            <> import_.module
-            <> "' is imported more than once",
+fn check_import(
+  definition: glance.Definition(glance.Import),
+  seen: set.Set(String),
+) -> #(List(rule.RuleError), set.Set(String)) {
+  let module_name = definition.definition.module
+  case set.contains(seen, module_name) {
+    True -> #(
+      [
+        rule.error(
+          message: "Module '" <> module_name <> "' is imported more than once",
+          details: "Remove the duplicate import statement.",
+          location: definition.definition.location,
         ),
-        ..results
-      ])
-      False -> #([import_.module, ..seen], results)
-    }
-  })
-  |> fn(acc) { list.reverse(acc.1) }
+      ],
+      seen,
+    )
+    False -> #([], set.insert(seen, module_name))
+  }
 }
