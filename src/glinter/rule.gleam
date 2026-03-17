@@ -81,11 +81,6 @@ pub opaque type ProjectRuleSchema(project_context, module_context) {
     from_module_to_project: Option(
       fn(module_context, project_context) -> project_context,
     ),
-    // Stored here but called by the runner (Task 3), not this module.
-    // The runner uses it to merge project contexts from parallel file processing.
-    fold_project_contexts: Option(
-      fn(project_context, project_context) -> project_context,
-    ),
     final_project_evaluation: Option(fn(project_context) -> List(RuleError)),
   )
 }
@@ -314,7 +309,6 @@ pub fn new_project(
     module_visitor_builder: None,
     from_project_to_module: None,
     from_module_to_project: None,
-    fold_project_contexts: None,
     final_project_evaluation: None,
   )
 }
@@ -330,13 +324,11 @@ pub fn with_module_context(
   schema schema: ProjectRuleSchema(pc, mc),
   from_project_to_module from_project_to_module: fn(pc) -> mc,
   from_module_to_project from_module_to_project: fn(mc, pc) -> pc,
-  fold_project_contexts fold_project_contexts: fn(pc, pc) -> pc,
 ) -> ProjectRuleSchema(pc, mc) {
   ProjectRuleSchema(
     ..schema,
     from_project_to_module: Some(from_project_to_module),
     from_module_to_project: Some(from_module_to_project),
-    fold_project_contexts: Some(fold_project_contexts),
   )
 }
 

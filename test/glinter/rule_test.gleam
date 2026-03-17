@@ -79,7 +79,6 @@ pub fn project_rule_builds_test() {
     |> rule.with_module_context(
       from_project_to_module: fn(_pc) { Nil },
       from_module_to_project: fn(_mc, pc) { pc },
-      fold_project_contexts: fn(a, _b) { a },
     )
     |> rule.with_final_project_evaluation(evaluator: fn(_pc) { [] })
     |> rule.to_project_rule()
@@ -300,7 +299,6 @@ pub fn project_rule_runs_across_files_test() {
     |> rule.with_module_context(
       from_project_to_module: fn(pc) { pc },
       from_module_to_project: fn(mc, _pc) { mc },
-      fold_project_contexts: fn(a, b) { a + b },
     )
     |> rule.with_final_project_evaluation(evaluator: fn(total) {
       case total > 2 {
