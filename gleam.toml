@@ -50,6 +50,7 @@ ffi_usage = "off"
 # AST traversal code is inherently complex — suppress complexity warnings
 "src/glinter.gleam" = ["label_possible"]
 "src/glinter/walker.gleam" = ["deep_nesting", "function_complexity", "label_possible"]
+"src/glinter/rule.gleam" = ["deep_nesting", "function_complexity", "label_possible"]
 "src/glinter/analysis.gleam" = ["deep_nesting", "function_complexity"]
 "src/glinter/reporter.gleam" = ["label_possible"]
 "src/glinter/ignore.gleam" = ["label_possible"]

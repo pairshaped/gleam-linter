@@ -51,6 +51,9 @@ pub opaque type ModuleRuleSchema(context) {
     expression_enter_visitor: Option(
       fn(glance.Expression, glance.Span, context) -> #(List(RuleError), context),
     ),
+    expression_exit_visitor: Option(
+      fn(glance.Expression, glance.Span, context) -> #(List(RuleError), context),
+    ),
     function_visitor: Option(
       fn(glance.Function, glance.Span, context) -> #(List(RuleError), context),
     ),
@@ -144,6 +147,7 @@ pub fn new(name name: String) -> ModuleRuleSchema(Nil) {
     default_severity: Warning,
     initial: fn() { Nil },
     expression_enter_visitor: None,
+    expression_exit_visitor: None,
     function_visitor: None,
     import_visitor: None,
     statement_visitor: None,
@@ -161,6 +165,7 @@ pub fn new_with_context(
     default_severity: Warning,
     initial: fn() { initial },
     expression_enter_visitor: None,
+    expression_exit_visitor: None,
     function_visitor: None,
     import_visitor: None,
     statement_visitor: None,
@@ -176,6 +181,14 @@ pub fn with_expression_enter_visitor(
     #(List(RuleError), context),
 ) -> ModuleRuleSchema(context) {
   ModuleRuleSchema(..schema, expression_enter_visitor: Some(visitor))
+}
+
+pub fn with_expression_exit_visitor(
+  schema schema: ModuleRuleSchema(context),
+  visitor visitor: fn(glance.Expression, glance.Span, context) ->
+    #(List(RuleError), context),
+) -> ModuleRuleSchema(context) {
+  ModuleRuleSchema(..schema, expression_exit_visitor: Some(visitor))
 }
 
 pub fn with_function_visitor(
@@ -406,6 +419,7 @@ fn run_project_schema(
               default_severity: schema.default_severity,
               initial: fn() { mc },
               expression_enter_visitor: None,
+              expression_exit_visitor: None,
               function_visitor: None,
               import_visitor: None,
               statement_visitor: None,
@@ -439,6 +453,18 @@ fn run_project_schema(
   }
 }
 
+// --- Public: visit a module with a rule schema (recursive traversal) ---
+
+/// Visit a module with a rule schema, returning errors and final context.
+/// Drives all registered visitors through a depth-first AST traversal.
+pub fn visit_module(
+  module module: glance.Module,
+  schema schema: ModuleRuleSchema(context),
+  source source: String,
+) -> #(List(RuleError), context) {
+  run_module_schema_with_context(schema, module, source)
+}
+
 // --- Internal: run module schema and return both errors and final context ---
 
 fn run_module_schema_with_context(
@@ -448,81 +474,290 @@ fn run_module_schema_with_context(
 ) -> #(List(RuleError), context) {
   let context = schema.initial()
 
-  // Run import visitors
-  let #(import_errors, context) = case schema.import_visitor {
-    None -> #([], context)
-    Some(visitor) ->
-      list.fold(module.imports, #([], context), fn(acc, import_def) {
-        let #(errors_so_far, ctx) = acc
-        let #(new_errors, new_ctx) = visitor(import_def, ctx)
-        #(list.append(errors_so_far, new_errors), new_ctx)
-      })
-  }
-
-  // Run function visitors
-  let #(function_errors, context) = case schema.function_visitor {
-    None -> #([], context)
-    Some(visitor) ->
-      list.fold(module.functions, #([], context), fn(acc, func_def) {
-        let #(errors_so_far, ctx) = acc
-        let function = func_def.definition
-        let #(new_errors, new_ctx) = visitor(function, function.location, ctx)
-        #(list.append(errors_so_far, new_errors), new_ctx)
-      })
-  }
-
-  // Run statement visitors
-  let #(statement_errors, context) = case schema.statement_visitor {
-    None -> #([], context)
-    Some(visitor) ->
-      list.fold(module.functions, #([], context), fn(acc, func_def) {
-        let function = func_def.definition
-        list.fold(function.body, acc, fn(acc2, statement) {
-          let #(errors_so_far, ctx) = acc2
-          let #(new_errors, new_ctx) = visitor(statement, ctx)
+  // 1. Visit imports
+  let #(errors, context) =
+    list.fold(module.imports, #([], context), fn(acc, import_def) {
+      let #(errors_so_far, ctx) = acc
+      case schema.import_visitor {
+        None -> acc
+        Some(visitor) -> {
+          let #(new_errors, new_ctx) = visitor(import_def, ctx)
           #(list.append(errors_so_far, new_errors), new_ctx)
-        })
-      })
-  }
+        }
+      }
+    })
 
-  // Run expression visitors (shallow -- just top-level expressions in statements)
-  // Full recursive traversal will be in visitor.gleam (Task 2)
-  let #(expression_errors, context) = case schema.expression_enter_visitor {
-    None -> #([], context)
-    Some(visitor) ->
-      list.fold(module.functions, #([], context), fn(acc, func_def) {
-        let function = func_def.definition
-        list.fold(function.body, acc, fn(acc2, statement) {
-          let expressions = statement_expressions(statement)
-          list.fold(expressions, acc2, fn(acc3, expr_span) {
-            let #(expression, span) = expr_span
-            let #(errors_so_far, ctx) = acc3
-            let #(new_errors, new_ctx) = visitor(expression, span, ctx)
-            #(list.append(errors_so_far, new_errors), new_ctx)
-          })
-        })
-      })
-  }
+  // 2. Visit functions and their bodies
+  let #(func_errors, context) =
+    list.fold(module.functions, #([], context), fn(acc, func_def) {
+      let #(errors_so_far, ctx) = acc
+      let function = func_def.definition
 
-  // Run final evaluation
+      // 2a. Call function visitor
+      let #(fn_errors, ctx) = case schema.function_visitor {
+        None -> #([], ctx)
+        Some(visitor) -> visitor(function, function.location, ctx)
+      }
+
+      // 2b. Walk the function body (list of statements)
+      let #(body_errors, ctx) =
+        visit_statements(schema, function.body, #([], ctx))
+
+      #(list.flatten([errors_so_far, fn_errors, body_errors]), ctx)
+    })
+
+  // 3. Final evaluation
   let #(final_errors, context) = case schema.final_evaluation {
     None -> #([], context)
     Some(evaluator) -> #(evaluator(context), context)
   }
 
-  let all_errors =
-    list.flatten([
-      import_errors,
-      function_errors,
-      statement_errors,
-      expression_errors,
-      final_errors,
-    ])
-
-  #(all_errors, context)
+  #(list.flatten([errors, func_errors, final_errors]), context)
 }
 
-// --- Internal: extract expressions from a statement (shallow) ---
+// --- Internal: visit a list of statements ---
+
+fn visit_statements(
+  schema: ModuleRuleSchema(context),
+  statements: List(glance.Statement),
+  acc: #(List(RuleError), context),
+) -> #(List(RuleError), context) {
+  list.fold(statements, acc, fn(acc, statement) {
+    let #(errors_so_far, ctx) = acc
+
+    // Call statement visitor
+    let #(stmt_errors, ctx) = case schema.statement_visitor {
+      None -> #([], ctx)
+      Some(visitor) -> visitor(statement, ctx)
+    }
+
+    // Extract expression(s) from the statement and recurse
+    let expressions = statement_expressions(statement)
+    let #(expr_errors, ctx) =
+      list.fold(expressions, #([], ctx), fn(acc2, expr_span) {
+        let #(expr_errors_so_far, ctx2) = acc2
+        let #(expression, span) = expr_span
+        let #(new_errors, new_ctx) =
+          visit_expression(schema, expression, span, ctx2)
+        #(list.append(expr_errors_so_far, new_errors), new_ctx)
+      })
+
+    #(list.flatten([errors_so_far, stmt_errors, expr_errors]), ctx)
+  })
+}
+
+// --- Internal: recursively visit an expression (depth-first) ---
+
+fn visit_expression(
+  schema: ModuleRuleSchema(context),
+  expression: glance.Expression,
+  span: glance.Span,
+  context: context,
+) -> #(List(RuleError), context) {
+  // 1. Enter visitor (top-down)
+  let #(enter_errors, context) = case schema.expression_enter_visitor {
+    None -> #([], context)
+    Some(visitor) -> visitor(expression, span, context)
+  }
+
+  // 2. Recurse into children
+  let #(child_errors, context) =
+    visit_expression_children(schema, expression, context)
+
+  // 3. Exit visitor (bottom-up)
+  let #(exit_errors, context) = case schema.expression_exit_visitor {
+    None -> #([], context)
+    Some(visitor) -> visitor(expression, span, context)
+  }
+
+  #(list.flatten([enter_errors, child_errors, exit_errors]), context)
+}
+
+fn visit_expression_children(
+  schema: ModuleRuleSchema(context),
+  expression: glance.Expression,
+  context: context,
+) -> #(List(RuleError), context) {
+  case expression {
+    // Nodes with statement bodies
+    glance.Block(_, statements) ->
+      visit_statements(schema, statements, #([], context))
+
+    glance.Fn(_, _, _, body) -> visit_statements(schema, body, #([], context))
+
+    // Case: recurse into subjects, then clause bodies
+    glance.Case(_, subjects, clauses) -> {
+      let #(subject_errors, context) =
+        visit_expression_list(schema, subjects, context)
+      let #(clause_errors, context) =
+        list.fold(clauses, #([], context), fn(acc, clause) {
+          let #(errors_so_far, ctx) = acc
+          let body_span = expression_span(clause.body)
+          let #(new_errors, new_ctx) =
+            visit_expression(schema, clause.body, body_span, ctx)
+          #(list.append(errors_so_far, new_errors), new_ctx)
+        })
+      #(list.append(subject_errors, clause_errors), context)
+    }
+
+    // Call: recurse into function, then arguments
+    glance.Call(_, function, arguments) -> {
+      let fn_span = expression_span(function)
+      let #(fn_errors, context) =
+        visit_expression(schema, function, fn_span, context)
+      let #(arg_errors, context) = visit_fields(schema, arguments, context)
+      #(list.append(fn_errors, arg_errors), context)
+    }
+
+    // Tuple: recurse into elements
+    glance.Tuple(_, elements) ->
+      visit_expression_list(schema, elements, context)
+
+    // List: recurse into elements, then optional rest
+    glance.List(_, elements, rest) -> {
+      let #(elem_errors, context) =
+        visit_expression_list(schema, elements, context)
+      let #(rest_errors, context) = case rest {
+        Some(rest_expr) -> {
+          let rest_span = expression_span(rest_expr)
+          visit_expression(schema, rest_expr, rest_span, context)
+        }
+        None -> #([], context)
+      }
+      #(list.append(elem_errors, rest_errors), context)
+    }
+
+    // BinaryOperator: recurse into left, right
+    glance.BinaryOperator(_, _, left, right) -> {
+      let left_span = expression_span(left)
+      let #(left_errors, context) =
+        visit_expression(schema, left, left_span, context)
+      let right_span = expression_span(right)
+      let #(right_errors, context) =
+        visit_expression(schema, right, right_span, context)
+      #(list.append(left_errors, right_errors), context)
+    }
+
+    // Single-child wrappers
+    glance.Echo(_, Some(inner), _) -> {
+      let inner_span = expression_span(inner)
+      visit_expression(schema, inner, inner_span, context)
+    }
+    glance.Panic(_, Some(inner)) -> {
+      let inner_span = expression_span(inner)
+      visit_expression(schema, inner, inner_span, context)
+    }
+    glance.Todo(_, Some(inner)) -> {
+      let inner_span = expression_span(inner)
+      visit_expression(schema, inner, inner_span, context)
+    }
+    glance.FieldAccess(_, container, _) -> {
+      let container_span = expression_span(container)
+      visit_expression(schema, container, container_span, context)
+    }
+    glance.TupleIndex(_, tuple, _) -> {
+      let tuple_span = expression_span(tuple)
+      visit_expression(schema, tuple, tuple_span, context)
+    }
+    glance.NegateInt(_, inner) -> {
+      let inner_span = expression_span(inner)
+      visit_expression(schema, inner, inner_span, context)
+    }
+    glance.NegateBool(_, inner) -> {
+      let inner_span = expression_span(inner)
+      visit_expression(schema, inner, inner_span, context)
+    }
+
+    // RecordUpdate: recurse into record expression and field values
+    glance.RecordUpdate(_, _, _, record, fields) -> {
+      let record_span = expression_span(record)
+      let #(record_errors, context) =
+        visit_expression(schema, record, record_span, context)
+      let #(field_errors, context) =
+        list.fold(fields, #([], context), fn(acc, field) {
+          let #(errors_so_far, ctx) = acc
+          case field.item {
+            Some(expr) -> {
+              let expr_span = expression_span(expr)
+              let #(new_errors, new_ctx) =
+                visit_expression(schema, expr, expr_span, ctx)
+              #(list.append(errors_so_far, new_errors), new_ctx)
+            }
+            None -> acc
+          }
+        })
+      #(list.append(record_errors, field_errors), context)
+    }
+
+    // FnCapture: recurse into function, args_before, args_after
+    glance.FnCapture(_, _, function, args_before, args_after) -> {
+      let fn_span = expression_span(function)
+      let #(fn_errors, context) =
+        visit_expression(schema, function, fn_span, context)
+      let #(before_errors, context) = visit_fields(schema, args_before, context)
+      let #(after_errors, context) = visit_fields(schema, args_after, context)
+      #(list.flatten([fn_errors, before_errors, after_errors]), context)
+    }
+
+    // BitString: recurse into segment values
+    glance.BitString(_, segments) ->
+      list.fold(segments, #([], context), fn(acc, segment) {
+        let #(errors_so_far, ctx) = acc
+        let expr = segment.0
+        let seg_span = expression_span(expr)
+        let #(new_errors, new_ctx) =
+          visit_expression(schema, expr, seg_span, ctx)
+        #(list.append(errors_so_far, new_errors), new_ctx)
+      })
+
+    // Leaf nodes -- no children to recurse into
+    glance.Int(_, _)
+    | glance.Float(_, _)
+    | glance.String(_, _)
+    | glance.Variable(_, _)
+    | glance.Panic(_, None)
+    | glance.Todo(_, None)
+    | glance.Echo(_, None, _) -> #([], context)
+  }
+}
+
+// --- Internal: visit a list of expressions ---
+
+fn visit_expression_list(
+  schema: ModuleRuleSchema(context),
+  expressions: List(glance.Expression),
+  context: context,
+) -> #(List(RuleError), context) {
+  list.fold(expressions, #([], context), fn(acc, expr) {
+    let #(errors_so_far, ctx) = acc
+    let expr_span = expression_span(expr)
+    let #(new_errors, new_ctx) = visit_expression(schema, expr, expr_span, ctx)
+    #(list.append(errors_so_far, new_errors), new_ctx)
+  })
+}
+
+// --- Internal: visit Field arguments (Call, FnCapture) ---
+
+fn visit_fields(
+  schema: ModuleRuleSchema(context),
+  fields: List(glance.Field(glance.Expression)),
+  context: context,
+) -> #(List(RuleError), context) {
+  list.fold(fields, #([], context), fn(acc, field) {
+    let #(errors_so_far, ctx) = acc
+    case field {
+      glance.LabelledField(_, _, item) | glance.UnlabelledField(item) -> {
+        let item_span = expression_span(item)
+        let #(new_errors, new_ctx) =
+          visit_expression(schema, item, item_span, ctx)
+        #(list.append(errors_so_far, new_errors), new_ctx)
+      }
+      glance.ShorthandField(_, _) -> acc
+    }
+  })
+}
+
+// --- Internal: extract expressions from a statement ---
 
 fn statement_expressions(
   statement: glance.Statement,
