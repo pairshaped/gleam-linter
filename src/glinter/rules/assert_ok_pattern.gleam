@@ -34,8 +34,8 @@ fn check_statement(
     glance.Assignment(location: location, kind: glance.LetAssert(_), ..), _ -> #(
       [
         rule.error(
-          message: "let assert crashes on mismatch — handle the error with a case expression",
-          details: "let assert panics when the pattern does not match. Use case to handle all variants safely. let assert is allowed in main() where crash-on-failure is the correct startup behavior.",
+          message: "let assert crashes on mismatch — return Result and let the caller handle the error",
+          details: "Functions should return Result types, not crash internally. If crash-on-failure is appropriate, move the let assert to main() where startup failures are expected. Only main() is allowed to use let assert.",
           location: location,
         ),
       ],
