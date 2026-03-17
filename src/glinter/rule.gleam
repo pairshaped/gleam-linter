@@ -46,11 +46,9 @@ pub opaque type Rule {
 pub opaque type ModuleRuleSchema(context) {
   ModuleRuleSchema(
     name: String,
+    default_severity: Severity,
     initial: fn() -> context,
     expression_enter_visitor: Option(
-      fn(glance.Expression, glance.Span, context) -> #(List(RuleError), context),
-    ),
-    expression_exit_visitor: Option(
       fn(glance.Expression, glance.Span, context) -> #(List(RuleError), context),
     ),
     function_visitor: Option(
@@ -71,6 +69,7 @@ pub opaque type ModuleRuleSchema(context) {
 pub opaque type ProjectRuleSchema(project_context, module_context) {
   ProjectRuleSchema(
     name: String,
+    default_severity: Severity,
     initial: fn() -> project_context,
     module_visitor_builder: Option(
       fn(ModuleRuleSchema(module_context)) -> ModuleRuleSchema(module_context),
@@ -79,6 +78,8 @@ pub opaque type ProjectRuleSchema(project_context, module_context) {
     from_module_to_project: Option(
       fn(module_context, project_context) -> project_context,
     ),
+    // Stored here but called by the runner (Task 3), not this module.
+    // The runner uses it to merge project contexts from parallel file processing.
     fold_project_contexts: Option(
       fn(project_context, project_context) -> project_context,
     ),
@@ -140,9 +141,9 @@ pub fn is_project_rule(rule: Rule) -> Bool {
 pub fn new(name name: String) -> ModuleRuleSchema(Nil) {
   ModuleRuleSchema(
     name: name,
+    default_severity: Warning,
     initial: fn() { Nil },
     expression_enter_visitor: None,
-    expression_exit_visitor: None,
     function_visitor: None,
     import_visitor: None,
     statement_visitor: None,
@@ -157,9 +158,9 @@ pub fn new_with_context(
 ) -> ModuleRuleSchema(context) {
   ModuleRuleSchema(
     name: name,
+    default_severity: Warning,
     initial: fn() { initial },
     expression_enter_visitor: None,
-    expression_exit_visitor: None,
     function_visitor: None,
     import_visitor: None,
     statement_visitor: None,
@@ -175,14 +176,6 @@ pub fn with_expression_enter_visitor(
     #(List(RuleError), context),
 ) -> ModuleRuleSchema(context) {
   ModuleRuleSchema(..schema, expression_enter_visitor: Some(visitor))
-}
-
-pub fn with_expression_exit_visitor(
-  schema schema: ModuleRuleSchema(context),
-  visitor visitor: fn(glance.Expression, glance.Span, context) ->
-    #(List(RuleError), context),
-) -> ModuleRuleSchema(context) {
-  ModuleRuleSchema(..schema, expression_exit_visitor: Some(visitor))
 }
 
 pub fn with_function_visitor(
@@ -263,13 +256,22 @@ pub fn with_final_evaluation(
   ModuleRuleSchema(..schema, final_evaluation: Some(evaluator))
 }
 
+// --- Severity builder ---
+
+pub fn with_default_severity(
+  schema schema: ModuleRuleSchema(context),
+  severity severity: Severity,
+) -> ModuleRuleSchema(context) {
+  ModuleRuleSchema(..schema, default_severity: severity)
+}
+
 // --- Build module rule (type erasure) ---
 
 /// Build a Rule from a ModuleRuleSchema, erasing the context type via closures.
 pub fn to_module_rule(schema: ModuleRuleSchema(context)) -> Rule {
   ModuleRule(
     name: schema.name,
-    default_severity: Warning,
+    default_severity: schema.default_severity,
     run: fn(module, source) { run_module_schema(schema, module, source) },
   )
 }
@@ -283,6 +285,7 @@ pub fn new_project(
 ) -> ProjectRuleSchema(project_context, module_context) {
   ProjectRuleSchema(
     name: name,
+    default_severity: Warning,
     initial: fn() { initial },
     module_visitor_builder: None,
     from_project_to_module: None,
@@ -320,11 +323,20 @@ pub fn with_final_project_evaluation(
   ProjectRuleSchema(..schema, final_project_evaluation: Some(evaluator))
 }
 
+pub fn with_project_default_severity(
+  schema schema: ProjectRuleSchema(pc, mc),
+  severity severity: Severity,
+) -> ProjectRuleSchema(pc, mc) {
+  ProjectRuleSchema(..schema, default_severity: severity)
+}
+
 /// Build a Rule from a ProjectRuleSchema, erasing context types via closures.
 pub fn to_project_rule(schema: ProjectRuleSchema(pc, mc)) -> Rule {
-  ProjectRule(name: schema.name, default_severity: Warning, run: fn(files) {
-    run_project_schema(schema, files)
-  })
+  ProjectRule(
+    name: schema.name,
+    default_severity: schema.default_severity,
+    run: fn(files) { run_project_schema(schema, files) },
+  )
 }
 
 // --- Execution functions (called by orchestrator) ---
@@ -391,9 +403,9 @@ fn run_project_schema(
           let base_schema =
             ModuleRuleSchema(
               name: schema.name,
+              default_severity: schema.default_severity,
               initial: fn() { mc },
               expression_enter_visitor: None,
-              expression_exit_visitor: None,
               function_visitor: None,
               import_visitor: None,
               statement_visitor: None,

@@ -203,6 +203,66 @@ pub fn stateful_rule_accumulates_context_test() {
   let assert True = errors2 == []
 }
 
+// --- Test: statement visitor fires on assignments ---
+
+pub fn run_module_rule_with_statement_visitor_test() {
+  let r =
+    rule.new_with_context(name: "count_assignments", initial: 0)
+    |> rule.with_statement_visitor(visitor: fn(statement, count) {
+      case statement {
+        glance.Assignment(..) -> #([], count + 1)
+        _ -> #([], count)
+      }
+    })
+    |> rule.with_final_evaluation(evaluator: fn(count) {
+      case count > 1 {
+        True -> [
+          rule.error(
+            message: "Too many assignments",
+            details: "",
+            location: glance.Span(start: 0, end: 0),
+          ),
+        ]
+        False -> []
+      }
+    })
+    |> rule.to_module_rule()
+
+  // 2 assignments in one function -- should trigger
+  let source = "pub fn main() { let a = 1\nlet b = 2\na }"
+  let assert Ok(module) = glance.module(source)
+  let errors = rule.run_on_module(rule: r, module: module, source: source)
+  let assert True = list.length(errors) == 1
+  let assert [err] = errors
+  let assert True = rule.error_message(err) == "Too many assignments"
+
+  // 1 assignment -- should not trigger
+  let source2 = "pub fn main() { let a = 1\na }"
+  let assert Ok(module2) = glance.module(source2)
+  let errors2 = rule.run_on_module(rule: r, module: module2, source: source2)
+  let assert True = errors2 == []
+}
+
+// --- Test: with_default_severity overrides Warning ---
+
+pub fn module_rule_custom_severity_test() {
+  let r =
+    rule.new(name: "error_rule")
+    |> rule.with_default_severity(severity: rule.Error)
+    |> rule.to_module_rule()
+
+  let assert True = rule.default_severity(r) == rule.Error
+}
+
+pub fn project_rule_custom_severity_test() {
+  let r =
+    rule.new_project(name: "error_project_rule", initial: Nil)
+    |> rule.with_project_default_severity(severity: rule.Error)
+    |> rule.to_project_rule()
+
+  let assert True = rule.default_severity(r) == rule.Error
+}
+
 // --- Test: run_on_module returns empty for project rules ---
 
 pub fn run_on_module_returns_empty_for_project_rule_test() {
