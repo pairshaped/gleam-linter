@@ -32,3 +32,21 @@ pub fn ignores_case_pattern_match_test() {
     )
   let assert True = results == []
 }
+
+pub fn allows_let_assert_in_main_test() {
+  let results =
+    test_helpers.lint_string_rule(
+      "pub fn main() { let assert Ok(db) = open_db() \n db }",
+      assert_ok_pattern.rule(),
+    )
+  let assert True = results == []
+}
+
+pub fn flags_let_assert_outside_main_test() {
+  let results =
+    test_helpers.lint_string_rule(
+      "pub fn main() { start() } pub fn start() { let assert Ok(db) = open_db() \n db }",
+      assert_ok_pattern.rule(),
+    )
+  let assert True = list.length(results) == 1
+}
