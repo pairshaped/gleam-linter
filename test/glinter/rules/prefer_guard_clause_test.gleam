@@ -92,6 +92,48 @@ pub fn ignores_multi_statement_body_test() {
   let assert True = results == []
 }
 
+pub fn ignores_function_call_in_return_branch_test() {
+  let results =
+    test_helpers.lint_string_rule(
+      "pub fn f(x) {
+        case x {
+          True -> { do_something() \n do_more() }
+          False -> expensive_computation()
+        }
+      }",
+      prefer_guard_clause.rule(),
+    )
+  let assert True = results == []
+}
+
+pub fn allows_constructor_in_return_branch_test() {
+  let results =
+    test_helpers.lint_string_rule(
+      "pub fn f(x) {
+        case x {
+          True -> { do_something() \n do_more() }
+          False -> Ok(Nil)
+        }
+      }",
+      prefer_guard_clause.rule(),
+    )
+  let assert True = list.length(results) == 1
+}
+
+pub fn allows_variable_in_return_branch_test() {
+  let results =
+    test_helpers.lint_string_rule(
+      "pub fn f(x, default) {
+        case x {
+          True -> { do_something() \n do_more() }
+          False -> default
+        }
+      }",
+      prefer_guard_clause.rule(),
+    )
+  let assert True = list.length(results) == 1
+}
+
 pub fn ignores_both_branches_block_test() {
   let results =
     test_helpers.lint_string_rule(
