@@ -70,6 +70,8 @@ These rules enforce explicit error handling. Gleam's `Result` type exists so err
 
 - **unwrap_used** (off): flags `result.unwrap`, `option.unwrap`, and lazy variants. Off by default because `unwrap` with an intentional default (optional config, end of fallback chain) is legitimate. Enable for stricter codebases. The planned error-flow tracking rule will catch the dangerous cases (silently discarding meaningful errors) more precisely.
 
+- **division_by_zero** (error): flags division or remainder by literal zero (`x / 0`, `x /. 0.0`, `x % 0`). Gleam doesn't crash on division by zero — it silently returns 0, which produces wrong results. This catches literal zero divisors only; variable divisors require runtime checks.
+
 ### Code Quality
 
 These rules catch debug artifacts and patterns that shouldn't ship to production.

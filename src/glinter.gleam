@@ -15,6 +15,7 @@ import glinter/rules/avoid_panic
 import glinter/rules/avoid_todo
 import glinter/rules/deep_nesting
 import glinter/rules/discarded_result
+import glinter/rules/division_by_zero
 import glinter/rules/duplicate_import
 import glinter/rules/echo_rule
 import glinter/rules/error_context_lost
@@ -77,6 +78,7 @@ pub fn main() {
     short_variable_name.rule(),
     unnecessary_variable.rule(),
     discarded_result.rule(),
+    division_by_zero.rule(),
   ]
 
   // Resolve paths: CLI args > config include > default src/
