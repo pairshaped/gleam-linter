@@ -92,10 +92,19 @@ fn check_chain(
 
   // Two adjacent literals can be merged, but only if the whole chain is literals
   // (mixed chains are intentional template building)
+  // Filter out empty strings before checking adjacent literals
+  // (they're already reported by the empty-string check above)
+  let non_empty_segments =
+    list.filter(segments, fn(seg) {
+      case seg {
+        glance.String(_, "") -> False
+        _ -> True
+      }
+    })
   let literal_errors = case has_non_literal {
     True -> []
     False ->
-      check_adjacent_literals(segments, span)
+      check_adjacent_literals(non_empty_segments, span)
   }
 
   list.append(empty_errors, literal_errors)
