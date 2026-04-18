@@ -94,6 +94,30 @@ pub fn detects_stale_annotation_followed_by_comment_test() {
   let assert True = a.scope == Stale
 }
 
+pub fn parses_multiple_annotations_in_file_test() {
+  let source =
+    "// nolint: avoid_panic\npanic as \"a\"\n// nolint: deep_nesting\nfn nested() { 1 }"
+  let results = annotation.parse(source)
+  let assert True = list.length(results) == 2
+  let assert [a1, a2] = results
+  let assert True = a1.rules == ["avoid_panic"]
+  let assert True = a1.target_line == 2
+  let assert True = a1.scope == LineScope
+  let assert True = a2.rules == ["deep_nesting"]
+  let assert True = a2.target_line == 4
+  let assert True = a2.scope == FunctionScope
+}
+
+pub fn empty_rules_returns_no_annotation_test() {
+  let results = annotation.parse("// nolint: ,,,\nlet x = 1")
+  let assert True = results == []
+}
+
+pub fn only_reason_no_rules_returns_no_annotation_test() {
+  let results = annotation.parse("// nolint: -- just a reason\nlet x = 1")
+  let assert True = results == []
+}
+
 pub fn no_annotations_returns_empty_test() {
   let results = annotation.parse("pub fn ok() { 1 }")
   let assert True = results == []
