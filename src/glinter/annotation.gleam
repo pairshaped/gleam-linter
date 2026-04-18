@@ -1,0 +1,99 @@
+import gleam/list
+import gleam/string
+
+pub type Scope {
+  LineScope
+  FunctionScope
+  Stale
+}
+
+pub type Annotation {
+  Annotation(rules: List(String), target_line: Int, scope: Scope)
+}
+
+/// Parse source text for // nolint: comments and return annotations.
+pub fn parse(source: String) -> List(Annotation) {
+  let lines = string.split(source, "\n")
+  parse_lines(lines, 1, [])
+}
+
+fn parse_lines(
+  lines: List(String),
+  line_num: Int,
+  acc: List(Annotation),
+) -> List(Annotation) {
+  case lines {
+    [] -> list.reverse(acc)
+    [line, ..rest] -> {
+      case extract_nolint(line) {
+        Ok(rules) -> {
+          let #(scope, target_line) = determine_scope(line, rest, line_num)
+          let annotation = Annotation(rules: rules, target_line: target_line, scope: scope)
+          parse_lines(rest, line_num + 1, [annotation, ..acc])
+        }
+        Error(_) -> parse_lines(rest, line_num + 1, acc)
+      }
+    }
+  }
+}
+
+/// Extract rule names from a line containing // nolint:
+fn extract_nolint(line: String) -> Result(List(String), Nil) {
+  case string.split(line, "// nolint:") {
+    [_, after_prefix] -> {
+      // Strip reason (everything after --)
+      let rules_part = case string.split(after_prefix, "--") {
+        [before_reason, ..] -> before_reason
+        _ -> after_prefix
+      }
+      let rules =
+        rules_part
+        |> string.split(",")
+        |> list.map(string.trim)
+        |> list.filter(fn(s) { s != "" })
+      case rules {
+        [] -> Error(Nil)
+        _ -> Ok(rules)
+      }
+    }
+    _ -> Error(Nil)
+  }
+}
+
+/// Determine scope based on whether the line is inline and what follows it.
+fn determine_scope(
+  current_line: String,
+  remaining_lines: List(String),
+  current_line_num: Int,
+) -> #(Scope, Int) {
+  let before_nolint = case string.split(current_line, "// nolint:") {
+    [prefix, ..] -> string.trim(prefix)
+    _ -> ""
+  }
+  case before_nolint {
+    "" -> {
+      case remaining_lines {
+        [] -> #(Stale, current_line_num)
+        [next_line, ..] -> {
+          let trimmed = string.trim(next_line)
+          case trimmed {
+            "" -> #(Stale, current_line_num)
+            _ ->
+              case
+                string.starts_with(trimmed, "fn ")
+                || string.starts_with(trimmed, "pub fn ")
+              {
+                True -> #(FunctionScope, current_line_num + 1)
+                False ->
+                  case string.starts_with(trimmed, "//") {
+                    True -> #(Stale, current_line_num)
+                    False -> #(LineScope, current_line_num + 1)
+                  }
+              }
+          }
+        }
+      }
+    }
+    _ -> #(LineScope, current_line_num)
+  }
+}
