@@ -41,3 +41,30 @@ pub fn ignores_let_assert_test() {
     )
   let assert True = results == []
 }
+
+pub fn ignores_discard_in_dual_external_fallback_test() {
+  let results =
+    test_helpers.lint_string_rule(
+      "@external(erlang, \"mymod\", \"myfn\")
+@external(javascript, \"mymod.mjs\", \"myfn\")
+pub fn my_ffi(a: Int) -> Int {
+  let _ = a
+  panic as \"unreachable\"
+}",
+      discarded_result.rule(),
+    )
+  let assert True = results == []
+}
+
+pub fn flags_discard_in_single_external_fallback_test() {
+  let results =
+    test_helpers.lint_string_rule(
+      "@external(erlang, \"mymod\", \"myfn\")
+pub fn my_ffi(a: Int) -> Int {
+  let _ = a
+  panic as \"not implemented for JS\"
+}",
+      discarded_result.rule(),
+    )
+  let assert True = list.length(results) == 1
+}

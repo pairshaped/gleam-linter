@@ -72,6 +72,32 @@ pub fn convert(value: lib.Param) -> Int {
   let assert True = results == []
 }
 
+pub fn allows_panic_in_dual_external_fallback_test() {
+  let results =
+    test_helpers.lint_string_rule(
+      "@external(erlang, \"mymod\", \"myfn\")
+@external(javascript, \"mymod.mjs\", \"myfn\")
+pub fn my_ffi(a: Int, b: Int) -> Int {
+  panic as \"unreachable\"
+}",
+      avoid_panic.rule(),
+    )
+  let assert True = results == []
+}
+
+pub fn flags_panic_in_single_external_fallback_test() {
+  // Only erlang external — JS fallback body is reachable
+  let results =
+    test_helpers.lint_string_rule(
+      "@external(erlang, \"mymod\", \"myfn\")
+pub fn my_ffi(a: Int, b: Int) -> Int {
+  panic as \"not implemented for JS\"
+}",
+      avoid_panic.rule(),
+    )
+  let assert True = list.length(results) == 1
+}
+
 pub fn still_flags_panic_in_own_module_match_test() {
   let results =
     test_helpers.lint_string_rule(
