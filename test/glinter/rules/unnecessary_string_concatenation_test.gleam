@@ -52,3 +52,33 @@ pub fn ignores_concat_with_nonempty_literal_test() {
     )
   let assert True = results == []
 }
+
+pub fn ignores_adjacent_literals_in_mixed_chain_test() {
+  // Codegen template: "fn " <> name <> "() {\n" <> "  return " <> value
+  // The adjacent literals are intentional formatting
+  let results =
+    test_helpers.lint_string_rule(
+      "pub fn codegen(name, value) { \"fn \" <> name <> \"() {\\n\" <> \"  return \" <> value }",
+      unnecessary_string_concatenation.rule(),
+    )
+  let assert True = results == []
+}
+
+pub fn detects_all_literal_chain_test() {
+  let results =
+    test_helpers.lint_string_rule(
+      "pub fn bad() { \"a\" <> \"b\" <> \"c\" }",
+      unnecessary_string_concatenation.rule(),
+    )
+  let assert True = list.length(results) == 1
+}
+
+pub fn detects_empty_string_in_mixed_chain_test() {
+  // Empty string is always a no-op, even in a mixed chain
+  let results =
+    test_helpers.lint_string_rule(
+      "pub fn bad(x) { \"prefix\" <> \"\" <> x }",
+      unnecessary_string_concatenation.rule(),
+    )
+  let assert True = list.length(results) == 1
+}
