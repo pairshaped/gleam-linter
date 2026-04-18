@@ -120,6 +120,7 @@ pub fn run(extra_rules extra_rules: List(rule.Rule)) -> Nil {
   // and src/test distinction that the project rule API doesn't yet provide)
   let unused_export_results =
     run_unused_exports(parsed_files, project_prefix, cfg)
+    |> apply_nolint_filter(parsed_files)
   let results = list.append(per_file_results, unused_export_results)
 
   // Cross-file: FFI usage detection (special-cased — scans .mjs files,
@@ -333,6 +334,23 @@ fn file_path_to_module_path(path: String) -> String {
   |> string.split("/")
   |> list.drop(1)
   |> string.join("/")
+}
+
+/// Apply nolint annotation filtering to cross-module results.
+/// Groups results by file, looks up the source/module for each, and filters.
+fn apply_nolint_filter(
+  results: List(rule.LintResult),
+  parsed_files: List(#(String, String, glance.Module)),
+) -> List(rule.LintResult) {
+  results
+  |> list.filter(fn(r) {
+    case list.find(parsed_files, fn(f) { f.0 == r.file }) {
+      Ok(#(_, source_text, module)) ->
+        // Keep only if NOT filtered by annotations
+        runner.filter_annotations([r], source_text, module) != []
+      Error(_) -> True
+    }
+  })
 }
 
 /// Run unused exports detection as a cross-module pass.

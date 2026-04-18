@@ -100,6 +100,34 @@ fn run_project_rules(
   })
 }
 
+/// Filter results by nolint annotations without emitting unused warnings.
+/// Used for project-rule results that are collected outside the module rules pass.
+pub fn filter_annotations(
+  results: List(LintResult),
+  source_text: String,
+  module: glance.Module,
+) -> List(LintResult) {
+  let annotations = annotation.parse(source_text)
+  let function_ranges =
+    module.functions
+    |> list.map(fn(func_def) {
+      let span = func_def.definition.location
+      let start_line = source.byte_offset_to_line(source_text, span.start)
+      let end_line = source.byte_offset_to_line(source_text, span.end)
+      #(start_line, end_line)
+    })
+
+  results
+  |> list.filter(fn(result) {
+    let error_line =
+      source.byte_offset_to_line(source_text, result.location.start)
+    case find_matching_annotation(result, error_line, annotations, function_ranges, 0) {
+      Ok(_) -> False
+      Error(_) -> True
+    }
+  })
+}
+
 /// Apply nolint annotations to filter results and emit warnings for unused annotations.
 fn apply_annotations(
   results: List(LintResult),
