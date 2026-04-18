@@ -86,6 +86,14 @@ pub fn detects_stale_annotation_eof_test() {
   let assert True = a.scope == Stale
 }
 
+pub fn detects_stale_annotation_followed_by_comment_test() {
+  let results =
+    annotation.parse("// nolint: avoid_panic\n// some other comment\npanic")
+  let assert True = list.length(results) == 1
+  let assert [a] = results
+  let assert True = a.scope == Stale
+}
+
 pub fn no_annotations_returns_empty_test() {
   let results = annotation.parse("pub fn ok() { 1 }")
   let assert True = results == []

@@ -40,7 +40,7 @@ fn parse_lines(
 /// Extract rule names from a line containing // nolint:
 fn extract_nolint(line: String) -> Result(List(String), Nil) {
   case string.split(line, "// nolint:") {
-    [_, after_prefix] -> {
+    [_, after_prefix, ..] -> {
       // Strip reason (everything after --)
       let rules_part = case string.split(after_prefix, "--") {
         [before_reason, ..] -> before_reason

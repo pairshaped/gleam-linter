@@ -1,5 +1,7 @@
 import glance
+import gleam/int
 import gleam/list
+import gleam/string
 import glinter/annotation
 import glinter/config
 import glinter/ignore
@@ -137,31 +139,45 @@ fn apply_annotations(
     annotations
     |> list.index_map(fn(ann, idx) {
       case ann.scope {
-        annotation.Stale ->
-          // Always warn about stale annotations
+        annotation.Stale -> {
+          let annotation_line = ann.target_line
           [
             LintResult(
               rule: "nolint_unused",
               severity: rule.Warning,
               file: file,
               location: glance.Span(start: 0, end: 0),
-              message: "Stale nolint annotation has no following code",
-              details: "This nolint comment does not target any code.",
+              message: "Stale nolint annotation on line "
+                <> int.to_string(annotation_line)
+                <> " is not followed by code",
+              details: "This // nolint: comment is followed by a blank line or end of file. Move it directly above the code it should suppress.",
             ),
           ]
+        }
         _ ->
           case list.contains(used_annotation_indices, idx) {
             True -> []
-            False -> [
-              LintResult(
-                rule: "nolint_unused",
-                severity: rule.Warning,
-                file: file,
-                location: glance.Span(start: 0, end: 0),
-                message: "Unused nolint annotation did not suppress any errors",
-                details: "This nolint comment did not suppress any lint errors. Remove it if no longer needed.",
-              ),
-            ]
+            False -> {
+              let annotation_line = case ann.scope {
+                annotation.FunctionScope -> ann.target_line - 1
+                _ -> ann.target_line - 1
+              }
+              let rules_str = string.join(ann.rules, ", ")
+              [
+                LintResult(
+                  rule: "nolint_unused",
+                  severity: rule.Warning,
+                  file: file,
+                  location: glance.Span(start: 0, end: 0),
+                  message: "Unused nolint annotation on line "
+                    <> int.to_string(annotation_line)
+                    <> ": no "
+                    <> rules_str
+                    <> " warnings were suppressed",
+                  details: "This // nolint: comment didn't suppress any warnings. Remove it if the code has been fixed, or check the rule names for typos.",
+                ),
+              ]
+            }
           }
       }
     })
