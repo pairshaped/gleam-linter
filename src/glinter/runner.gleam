@@ -1,8 +1,10 @@
 import glance
 import gleam/list
+import glinter/annotation
 import glinter/config
 import glinter/ignore
 import glinter/rule.{type LintResult, LintResult}
+import glinter/source
 
 /// Run all rules against all files. Module rules run in parallel per file.
 /// Project rules run module visitors sequentially, fold contexts, then final eval.
@@ -27,27 +29,30 @@ fn run_module_rules(
 ) -> List(LintResult) {
   pmap(
     func: fn(file) {
-      let #(display_path, source, module) = file
+      let #(display_path, source_text, module) = file
       let active_rules =
         rules
         |> list.filter(fn(r) {
           !ignore.is_rule_ignored(display_path, rule.name(r), config.ignore)
         })
 
-      active_rules
-      |> list.flat_map(fn(r) {
-        rule.run_on_module(rule: r, module: module, source: source)
-        |> list.map(fn(err) {
-          LintResult(
-            rule: rule.name(r),
-            severity: rule.default_severity(r),
-            file: display_path,
-            location: rule.error_location(err),
-            message: rule.error_message(err),
-            details: rule.error_details(err),
-          )
+      let results =
+        active_rules
+        |> list.flat_map(fn(r) {
+          rule.run_on_module(rule: r, module: module, source: source_text)
+          |> list.map(fn(err) {
+            LintResult(
+              rule: rule.name(r),
+              severity: rule.default_severity(r),
+              file: display_path,
+              location: rule.error_location(err),
+              message: rule.error_message(err),
+              details: rule.error_details(err),
+            )
+          })
         })
-      })
+
+      apply_annotations(results, source_text, module, display_path)
     },
     items: files,
   )
@@ -62,8 +67,8 @@ fn run_project_rules(
   let file_tuples =
     files
     |> list.map(fn(f) {
-      let #(_display_path, source, module) = f
-      #(module, source)
+      let #(_display_path, source_text, module) = f
+      #(module, source_text)
     })
 
   rules
@@ -90,6 +95,119 @@ fn run_project_rules(
           ))
       }
     })
+  })
+}
+
+/// Apply nolint annotations to filter results and emit warnings for unused annotations.
+fn apply_annotations(
+  results: List(LintResult),
+  source_text: String,
+  module: glance.Module,
+  file: String,
+) -> List(LintResult) {
+  let annotations = annotation.parse(source_text)
+
+  // Build function line ranges: list of #(start_line, end_line)
+  let function_ranges =
+    module.functions
+    |> list.map(fn(func_def) {
+      let span = func_def.definition.location
+      let start_line = source.byte_offset_to_line(source_text, span.start)
+      let end_line = source.byte_offset_to_line(source_text, span.end)
+      #(start_line, end_line)
+    })
+
+  // For each result, check if it's suppressed by an annotation.
+  // Track which annotations actually suppress something.
+  let #(kept_results, used_annotation_indices) =
+    list.fold(results, #([], []), fn(acc, result) {
+      let #(kept, used_indices) = acc
+      let error_line =
+        source.byte_offset_to_line(source_text, result.location.start)
+      case find_matching_annotation(result, error_line, annotations, function_ranges, 0) {
+        Ok(idx) -> #(kept, [idx, ..used_indices])
+        Error(Nil) -> #([result, ..kept], used_indices)
+      }
+    })
+
+  let kept_results = list.reverse(kept_results)
+
+  // Emit nolint_unused warnings for stale annotations and unused non-stale annotations
+  let unused_warnings =
+    annotations
+    |> list.index_map(fn(ann, idx) {
+      case ann.scope {
+        annotation.Stale ->
+          // Always warn about stale annotations
+          [
+            LintResult(
+              rule: "nolint_unused",
+              severity: rule.Warning,
+              file: file,
+              location: glance.Span(start: 0, end: 0),
+              message: "Stale nolint annotation has no following code",
+              details: "This nolint comment does not target any code.",
+            ),
+          ]
+        _ ->
+          case list.contains(used_annotation_indices, idx) {
+            True -> []
+            False -> [
+              LintResult(
+                rule: "nolint_unused",
+                severity: rule.Warning,
+                file: file,
+                location: glance.Span(start: 0, end: 0),
+                message: "Unused nolint annotation did not suppress any errors",
+                details: "This nolint comment did not suppress any lint errors. Remove it if no longer needed.",
+              ),
+            ]
+          }
+      }
+    })
+    |> list.flatten()
+
+  list.append(kept_results, unused_warnings)
+}
+
+/// Find the index of an annotation that suppresses the given result.
+/// Returns Ok(index) if found, Error(Nil) if not suppressed.
+fn find_matching_annotation(
+  result: LintResult,
+  error_line: Int,
+  annotations: List(annotation.Annotation),
+  function_ranges: List(#(Int, Int)),
+  idx: Int,
+) -> Result(Int, Nil) {
+  case annotations {
+    [] -> Error(Nil)
+    [ann, ..rest] -> {
+      let rule_matches = list.contains(ann.rules, result.rule)
+      let line_matches = case ann.scope {
+        annotation.LineScope -> ann.target_line == error_line
+        annotation.FunctionScope ->
+          // Find the function that starts at target_line and check if error is within it
+          is_in_function_scope(error_line, ann.target_line, function_ranges)
+        annotation.Stale -> False
+      }
+      case rule_matches && line_matches {
+        True -> Ok(idx)
+        False ->
+          find_matching_annotation(result, error_line, rest, function_ranges, idx + 1)
+      }
+    }
+  }
+}
+
+/// Check if error_line falls within the function that starts at fn_start_line.
+fn is_in_function_scope(
+  error_line: Int,
+  fn_start_line: Int,
+  function_ranges: List(#(Int, Int)),
+) -> Bool {
+  list.any(function_ranges, fn(range) {
+    let #(start, end) = range
+    start == fn_start_line && error_line >= start && error_line <= end
   })
 }
 
