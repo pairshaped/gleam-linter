@@ -9,9 +9,10 @@ pub fn rule() -> rule.Rule {
 }
 
 fn check_function(
-  function: glance.Function,
+  definition: glance.Definition(glance.Function),
   span: glance.Span,
 ) -> List(rule.RuleError) {
+  let function = definition.definition
   case string.ends_with(function.name, "_") {
     True -> [
       rule.error(

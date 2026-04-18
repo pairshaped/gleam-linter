@@ -21,10 +21,11 @@ pub fn rule() -> rule.Rule {
 }
 
 fn count_function(
-  function: glance.Function,
+  definition: glance.Definition(glance.Function),
   _span: glance.Span,
   context: Context,
 ) -> #(List(rule.RuleError), Context) {
+  let function = definition.definition
   let count = analysis.count_branches(function.body)
   #([], Context(total_branches: context.total_branches + count))
 }

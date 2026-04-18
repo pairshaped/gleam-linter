@@ -55,7 +55,8 @@ pub opaque type ModuleRuleSchema(context) {
       fn(glance.Expression, glance.Span, context) -> #(List(RuleError), context),
     ),
     function_visitor: Option(
-      fn(glance.Function, glance.Span, context) -> #(List(RuleError), context),
+      fn(glance.Definition(glance.Function), glance.Span, context) ->
+        #(List(RuleError), context),
     ),
     import_visitor: Option(
       fn(glance.Definition(glance.Import), context) ->
@@ -188,7 +189,7 @@ pub fn with_expression_exit_visitor(
 
 pub fn with_function_visitor(
   schema schema: ModuleRuleSchema(context),
-  visitor visitor: fn(glance.Function, glance.Span, context) ->
+  visitor visitor: fn(glance.Definition(glance.Function), glance.Span, context) ->
     #(List(RuleError), context),
 ) -> ModuleRuleSchema(context) {
   ModuleRuleSchema(..schema, function_visitor: Some(visitor))
@@ -225,12 +226,13 @@ pub fn with_simple_expression_visitor(
 
 pub fn with_simple_function_visitor(
   schema schema: ModuleRuleSchema(context),
-  visitor visitor: fn(glance.Function, glance.Span) -> List(RuleError),
+  visitor visitor: fn(glance.Definition(glance.Function), glance.Span) ->
+    List(RuleError),
 ) -> ModuleRuleSchema(context) {
   ModuleRuleSchema(
     ..schema,
-    function_visitor: Some(fn(function, span, ctx) {
-      #(visitor(function, span), ctx)
+    function_visitor: Some(fn(definition, span, ctx) {
+      #(visitor(definition, span), ctx)
     }),
   )
 }
@@ -494,17 +496,17 @@ fn run_module_schema_with_context(
   let #(func_errors, context) =
     list.fold(module.functions, #([], context), fn(acc, func_def) {
       let #(errors_so_far, ctx) = acc
-      let function = func_def.definition
 
       // 2a. Call function visitor
       let #(fn_errors, ctx) = case schema.function_visitor {
         None -> #([], ctx)
-        Some(visitor) -> visitor(function, function.location, ctx)
+        Some(visitor) ->
+          visitor(func_def, func_def.definition.location, ctx)
       }
 
       // 2b. Walk the function body (list of statements)
       let #(body_errors, ctx) =
-        visit_statements(schema, function.body, #([], ctx))
+        visit_statements(schema, func_def.definition.body, #([], ctx))
 
       #(list.flatten([errors_so_far, fn_errors, body_errors]), ctx)
     })

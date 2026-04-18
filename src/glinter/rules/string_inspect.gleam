@@ -19,10 +19,11 @@ pub fn rule() -> rule.Rule {
 }
 
 fn collect_generic_params(
-  function: glance.Function,
+  definition: glance.Definition(glance.Function),
   _span: glance.Span,
   _context: Context,
 ) -> #(List(rule.RuleError), Context) {
+  let function = definition.definition
   let generic_params =
     function.parameters
     |> list.filter_map(fn(param) {

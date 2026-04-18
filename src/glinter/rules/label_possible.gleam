@@ -10,9 +10,10 @@ pub fn rule() -> rule.Rule {
 }
 
 fn check_function(
-  function: glance.Function,
+  definition: glance.Definition(glance.Function),
   span: glance.Span,
 ) -> List(rule.RuleError) {
+  let function = definition.definition
   let params = function.parameters
   // Skip functions with fewer than 2 params, or any unlabelled discard param
   // (you can't fully label a function that has an unlabelled discard)

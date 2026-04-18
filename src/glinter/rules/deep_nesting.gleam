@@ -19,7 +19,7 @@ pub fn rule() -> rule.Rule {
 /// Reset depth to 1 for each top-level function body (the function body
 /// itself counts as the first nesting level, matching V2 behaviour).
 fn on_function(
-  _function: glance.Function,
+  _definition: glance.Definition(glance.Function),
   _span: glance.Span,
   _context: Context,
 ) -> #(List(rule.RuleError), Context) {

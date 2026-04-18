@@ -81,8 +81,8 @@ pub fn function_visitor_collects_all_functions_test() {
 
   let #(_errors, names) =
     rule.new_with_context(name: "collect_fns", initial: [])
-    |> rule.with_function_visitor(visitor: fn(function, _span, names) {
-      #([], list.append(names, [function.name]))
+    |> rule.with_function_visitor(visitor: fn(definition, _span, names) {
+      #([], list.append(names, [definition.definition.name]))
     })
     |> visit_source(source)
 

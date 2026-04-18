@@ -10,9 +10,10 @@ pub fn rule() -> rule.Rule {
 }
 
 fn check_function(
-  function: glance.Function,
+  definition: glance.Definition(glance.Function),
   _span: glance.Span,
 ) -> List(rule.RuleError) {
+  let function = definition.definition
   case function.body {
     [glance.Expression(glance.Case(location, _, [clause_a, clause_b]))] ->
       case

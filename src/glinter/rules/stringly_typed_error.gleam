@@ -9,9 +9,10 @@ pub fn rule() -> rule.Rule {
 }
 
 fn check_function(
-  function: glance.Function,
+  definition: glance.Definition(glance.Function),
   span: glance.Span,
 ) -> List(rule.RuleError) {
+  let function = definition.definition
   case function.return {
     Some(glance.NamedType(_, "Result", _, [_, error_type])) ->
       case is_string_type(error_type) {

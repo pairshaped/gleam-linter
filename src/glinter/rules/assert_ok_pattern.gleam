@@ -17,10 +17,11 @@ pub fn rule() -> rule.Rule {
 }
 
 fn track_function(
-  function: glance.Function,
+  definition: glance.Definition(glance.Function),
   _span: glance.Span,
   _context: Context,
 ) -> #(List(rule.RuleError), Context) {
+  let function = definition.definition
   #([], Context(current_function: Some(function.name)))
 }
 
