@@ -195,14 +195,17 @@ Three levels, from narrowest to broadest. **Use the narrowest scope that covers 
 
 #### Line-level suppression
 
-Place the comment on the line directly above the code it suppresses, or inline on the same line:
+Place the comment on its own line directly above the code it suppresses:
 
 ```gleam
 // nolint: thrown_away_error -- key absent means use default
 Error(_) -> Ok([])
 
-let _ = setup() // nolint: discarded_result -- fire and forget
+// nolint: discarded_result -- fire and forget
+let _ = setup()
 ```
+
+Trailing inline placement (`code // nolint: foo`) is disallowed: `gleam format` may move the comment off the line when wrapping, silently breaking the suppression. The runner emits a `nolint_inline` warning if you try.
 
 #### Function-level suppression
 
@@ -228,6 +231,10 @@ Add `--` after the rule list to explain why:
 Glinter warns (`nolint_unused`) when a `// nolint:` annotation:
 - Isn't followed by code (blank line, another comment, or end of file)
 - Doesn't suppress any actual warning (code was fixed but annotation wasn't removed)
+
+#### Inline placement detection
+
+Glinter warns (`nolint_inline`) when a `// nolint:` comment trails real code on the same line. Trailing inline placement is fragile because `gleam format` may move the comment off the line when wrapping, silently breaking the suppression. Move the comment to its own line directly above the target.
 
 ## Output formats
 

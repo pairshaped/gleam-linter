@@ -37,14 +37,17 @@ Three levels, from narrowest to broadest. **Use the narrowest scope that covers 
 
 ### Line-level: `// nolint:`
 
-Place on the line above the violation, or inline on the same line. Suppresses that one line only.
+Place on its own line directly above the violation. Suppresses that one line only.
 
 ```gleam
 // nolint: thrown_away_error -- key absent means use default
 Error(_) -> Ok([])
 
-let _ = setup() // nolint: discarded_result -- fire and forget
+// nolint: discarded_result -- fire and forget
+let _ = setup()
 ```
+
+Trailing inline placement (`code // nolint: foo`) is disallowed: `gleam format` may move the comment off the line when wrapping, silently breaking the suppression. The runner emits a `nolint_inline` warning if you use it.
 
 ### Function-level: `// nolint:`
 
@@ -70,6 +73,10 @@ Suppress rules for entire files. Use when a rule is fundamentally wrong for the 
 ### Stale annotations
 
 Glinter warns (`nolint_unused`) when a `// nolint:` comment doesn't suppress any actual error. Catches orphaned annotations after code changes.
+
+### Inline placement
+
+Glinter warns (`nolint_inline`) when a `// nolint:` comment trails code on the same line. Move it to its own line above the target.
 
 ## Rules quick reference
 
