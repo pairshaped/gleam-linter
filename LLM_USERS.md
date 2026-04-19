@@ -47,8 +47,6 @@ Error(_) -> Ok([])
 let _ = setup()
 ```
 
-Trailing inline placement (`code // nolint: foo`) is disallowed: `gleam format` may move the comment off the line when wrapping, silently breaking the suppression. The runner emits a `nolint_inline` warning if you use it.
-
 ### Function-level: `// nolint:`
 
 Place immediately above `fn` or `pub fn`. Suppresses the listed rules for the entire function body.
