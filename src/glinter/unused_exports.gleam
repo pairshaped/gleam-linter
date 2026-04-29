@@ -2,8 +2,9 @@
 /// analysis.gleam, rules/deep_nesting.gleam, and rules/missing_labels.gleam
 /// when glance adds new variants.
 import glance.{
-  type Expression, type Module, type Pattern, type Statement, type Type,
-  Constant, CustomType, Definition, Function, Public, TypeAlias,
+  type Attribute, type Expression, type Module, type Pattern, type Statement,
+  type Type, Attribute, Constant, CustomType, Definition, Function, Private,
+  Public, TypeAlias,
 }
 import gleam/list
 import gleam/option.{None, Some}
@@ -27,6 +28,13 @@ pub type ImportResolution {
   UnqualifiedType(String)
 }
 
+fn has_internal(attributes: List(Attribute)) -> Bool {
+  list.any(attributes, fn(attr) {
+    let Attribute(name: name, arguments: _) = attr
+    name == "internal"
+  })
+}
+
 // --- Collect pub definitions from a module ---
 
 pub fn collect_pub_definitions(module: Module) -> List(PubDefinition) {
@@ -34,13 +42,17 @@ pub fn collect_pub_definitions(module: Module) -> List(PubDefinition) {
     module.functions
     |> list.filter_map(fn(def) {
       let Definition(
-        _,
+        attributes,
         Function(name: name, publicity: publicity, location: location, ..),
       ) = def
       case publicity, name {
         Public, "main" -> Error(Nil)
         Public, _ ->
-          Ok(PubDefinition(name: name, kind: PubFunction, location: location))
+          case has_internal(attributes) {
+            True -> Error(Nil)
+            False ->
+              Ok(PubDefinition(name: name, kind: PubFunction, location: location))
+          }
         _, _ -> Error(Nil)
       }
     })
@@ -63,12 +75,16 @@ pub fn collect_pub_definitions(module: Module) -> List(PubDefinition) {
     module.custom_types
     |> list.filter_map(fn(def) {
       let Definition(
-        _,
+        attributes,
         CustomType(name: name, publicity: publicity, location: location, ..),
       ) = def
       case publicity {
         Public ->
-          Ok(PubDefinition(name: name, kind: PubCustomType, location: location))
+          case has_internal(attributes) {
+            True -> Error(Nil)
+            False ->
+              Ok(PubDefinition(name: name, kind: PubCustomType, location: location))
+          }
         _ -> Error(Nil)
       }
     })
@@ -77,17 +93,138 @@ pub fn collect_pub_definitions(module: Module) -> List(PubDefinition) {
     module.type_aliases
     |> list.filter_map(fn(def) {
       let Definition(
-        _,
+        attributes,
         TypeAlias(name: name, publicity: publicity, location: location, ..),
       ) = def
       case publicity {
         Public ->
-          Ok(PubDefinition(name: name, kind: PubTypeAlias, location: location))
+          case has_internal(attributes) {
+            True -> Error(Nil)
+            False ->
+              Ok(PubDefinition(name: name, kind: PubTypeAlias, location: location))
+          }
         _ -> Error(Nil)
       }
     })
 
   list.flatten([functions, constants, types, aliases])
+}
+
+fn collect_internal_pub_defs(module: Module) -> List(PubDefinition) {
+  let fns =
+    module.functions
+    |> list.filter_map(fn(def) {
+      let Definition(
+        attributes,
+        Function(name: name, publicity: publicity, location: location, ..),
+      ) = def
+      case publicity, name {
+        Public, "main" -> Error(Nil)
+        Public, _ ->
+          case has_internal(attributes) {
+            True ->
+              Ok(PubDefinition(name: name, kind: PubFunction, location: location))
+            False -> Error(Nil)
+          }
+        _, _ -> Error(Nil)
+      }
+    })
+
+  let types =
+    module.custom_types
+    |> list.filter_map(fn(def) {
+      let Definition(
+        attributes,
+        CustomType(name: name, publicity: publicity, location: location, ..),
+      ) = def
+      case publicity {
+        Public ->
+          case has_internal(attributes) {
+            True ->
+              Ok(PubDefinition(name: name, kind: PubCustomType, location: location))
+            False -> Error(Nil)
+          }
+        _ -> Error(Nil)
+      }
+    })
+
+  let aliases =
+    module.type_aliases
+    |> list.filter_map(fn(def) {
+      let Definition(
+        attributes,
+        TypeAlias(name: name, publicity: publicity, location: location, ..),
+      ) = def
+      case publicity {
+        Public ->
+          case has_internal(attributes) {
+            True ->
+              Ok(PubDefinition(name: name, kind: PubTypeAlias, location: location))
+            False -> Error(Nil)
+          }
+        _ -> Error(Nil)
+      }
+    })
+
+  list.flatten([fns, types, aliases])
+}
+
+fn collect_private_internal_defs(module: Module) -> List(PubDefinition) {
+  let fns =
+    module.functions
+    |> list.filter_map(fn(def) {
+      let Definition(
+        attributes,
+        Function(name: name, publicity: publicity, location: location, ..),
+      ) = def
+      case publicity {
+        Private ->
+          case has_internal(attributes) {
+            True ->
+              Ok(PubDefinition(name: name, kind: PubFunction, location: location))
+            False -> Error(Nil)
+          }
+        _ -> Error(Nil)
+      }
+    })
+
+  let types =
+    module.custom_types
+    |> list.filter_map(fn(def) {
+      let Definition(
+        attributes,
+        CustomType(name: name, publicity: publicity, location: location, ..),
+      ) = def
+      case publicity {
+        Private ->
+          case has_internal(attributes) {
+            True ->
+              Ok(PubDefinition(name: name, kind: PubCustomType, location: location))
+            False -> Error(Nil)
+          }
+        _ -> Error(Nil)
+      }
+    })
+
+  let aliases =
+    module.type_aliases
+    |> list.filter_map(fn(def) {
+      let Definition(
+        attributes,
+        TypeAlias(name: name, publicity: publicity, location: location, ..),
+      ) = def
+      case publicity {
+        Private ->
+          case has_internal(attributes) {
+            True ->
+              Ok(PubDefinition(name: name, kind: PubTypeAlias, location: location))
+            False -> Error(Nil)
+          }
+        _ -> Error(Nil)
+      }
+    })
+
+  list.flatten([fns, types, aliases])
 }
 
 // --- Import resolution ---
@@ -536,44 +673,96 @@ pub fn check_unused_exports(
   |> list.flat_map(fn(src) {
     let #(file_path, module_path, module) = src
     let pub_defs = collect_pub_definitions(module)
+    let internal_pub_defs = collect_internal_pub_defs(module)
+    let private_internal_defs = collect_private_internal_defs(module)
     let other_files = list.filter(all_consumers, fn(f) { f.0 != file_path })
 
-    pub_defs
-    |> list.filter_map(fn(pub_def) {
-      // A pub type required by a pub function's signature in the same
-      // module must stay public — skip it.
-      let is_required_by_interface = case pub_def.kind {
-        PubCustomType | PubTypeAlias ->
-          is_type_required_by_pub_interface(module, pub_def.name)
-        PubFunction | PubConstant -> False
-      }
-      let is_used =
-        is_required_by_interface
-        || list.any(other_files, fn(consumer) {
-          let #(_, _, consumer_module) = consumer
-          is_member_used_in(
-            consumer_module,
-            module_path,
-            pub_def.name,
-            pub_def.kind,
-          )
-        })
-      case is_used {
-        True -> Error(Nil)
-        False ->
-          Ok(rule.LintResult(
-            rule: "unused_exports",
-            severity: severity,
-            file: file_path,
-            location: pub_def.location,
-            message: kind_label(pub_def.kind)
-              <> " '"
-              <> pub_def.name
-              <> "' is never used by another module",
-            details: "",
-          ))
-      }
-    })
+    let unused_results =
+      pub_defs
+      |> list.filter_map(fn(pub_def) {
+        // A pub type required by a pub function's signature in the same
+        // module must stay public — skip it.
+        let is_required_by_interface = case pub_def.kind {
+          PubCustomType | PubTypeAlias ->
+            is_type_required_by_pub_interface(module, pub_def.name)
+          PubFunction | PubConstant -> False
+        }
+        let is_used =
+          is_required_by_interface
+          || list.any(other_files, fn(consumer) {
+            let #(_, _, consumer_module) = consumer
+            is_member_used_in(
+              consumer_module,
+              module_path,
+              pub_def.name,
+              pub_def.kind,
+            )
+          })
+        case is_used {
+          True -> Error(Nil)
+          False ->
+            Ok(rule.LintResult(
+              rule: "unused_exports",
+              severity: severity,
+              file: file_path,
+              location: pub_def.location,
+              message: kind_label(pub_def.kind)
+                <> " '"
+                <> pub_def.name
+                <> "' is never used by another module",
+              details: "",
+            ))
+        }
+      })
+
+    let misuse_results =
+      internal_pub_defs
+      |> list.filter_map(fn(pub_def) {
+        let is_used =
+          list.any(other_files, fn(consumer) {
+            let #(_, _, consumer_module) = consumer
+            is_member_used_in(
+              consumer_module,
+              module_path,
+              pub_def.name,
+              pub_def.kind,
+            )
+          })
+        case is_used {
+          False -> Error(Nil)
+          True ->
+            Ok(rule.LintResult(
+              rule: "unused_exports",
+              severity: severity,
+              file: file_path,
+              location: pub_def.location,
+              message: kind_label(pub_def.kind)
+                <> " '"
+                <> pub_def.name
+                <> "' has @internal but is used externally — annotation may be a leftover",
+              details: "",
+            ))
+        }
+      })
+
+    let private_internal_results =
+      private_internal_defs
+      |> list.map(fn(pub_def) {
+        rule.LintResult(
+          rule: "unused_exports",
+          severity: severity,
+          file: file_path,
+          location: pub_def.location,
+          message: "Private "
+            <> def_kind_label(pub_def.kind)
+            <> " '"
+            <> pub_def.name
+            <> "' has @internal — annotation has no effect on non-pub definitions",
+          details: "",
+        )
+      })
+
+    list.append(unused_results, list.append(misuse_results, private_internal_results))
   })
 }
 
@@ -583,5 +772,14 @@ fn kind_label(kind: PubKind) -> String {
     PubConstant -> "Public constant"
     PubCustomType -> "Public type"
     PubTypeAlias -> "Public type alias"
+  }
+}
+
+fn def_kind_label(kind: PubKind) -> String {
+  case kind {
+    PubFunction -> "function"
+    PubConstant -> "constant"
+    PubCustomType -> "type"
+    PubTypeAlias -> "type alias"
   }
 }

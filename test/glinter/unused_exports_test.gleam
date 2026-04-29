@@ -352,3 +352,192 @@ pub fn used_only_in_test_not_flagged_test() {
     )
   let assert True = results == []
 }
+
+// --- @internal annotation tests ---
+
+pub fn internal_function_not_flagged_as_unused_test() {
+  // An @internal function with no external callers should NOT be flagged
+  // as "unused" because @internal means it's intentionally public for
+  // internal/testing use.
+  let src_files = [
+    parse(
+      path: "src/myapp/users.gleam",
+      module_path: "myapp/users",
+      source:
+        "@internal
+pub fn helper() { Nil }",
+    ),
+  ]
+  let test_files = []
+  let results =
+    unused_exports.check_unused_exports(
+      parsed_src: src_files,
+      parsed_test: test_files,
+      severity: rule.Warning,
+    )
+  let assert True = results == []
+}
+
+pub fn internal_function_used_externally_flagged_as_misuse_test() {
+  // An @internal function that IS used by another module should be flagged
+  // because the annotation is likely a leftover.
+  let src_files = [
+    parse(
+      path: "src/myapp/users.gleam",
+      module_path: "myapp/users",
+      source:
+        "@internal
+pub fn helper() { Nil }",
+    ),
+    parse(
+      path: "src/myapp/main.gleam",
+      module_path: "myapp/main",
+      source:
+        "import myapp/users
+pub fn main() { users.helper() }",
+    ),
+  ]
+  let test_files = []
+  let results =
+    unused_exports.check_unused_exports(
+      parsed_src: src_files,
+      parsed_test: test_files,
+      severity: rule.Warning,
+    )
+  let assert True = list.length(results) == 1
+  let assert [result] = results
+  let assert True =
+    result.message
+    == "Public function 'helper' has @internal but is used externally — annotation may be a leftover"
+  let assert True = result.file == "src/myapp/users.gleam"
+}
+
+pub fn internal_function_not_used_not_flagged_as_misuse_test() {
+  // An @internal function that is NOT used should produce NO lint results
+  // at all (not flagged as unused, not flagged as misused).
+  let src_files = [
+    parse(
+      path: "src/myapp/users.gleam",
+      module_path: "myapp/users",
+      source:
+        "@internal
+pub fn helper() { Nil }",
+    ),
+    parse(
+      path: "src/myapp/main.gleam",
+      module_path: "myapp/main",
+      source: "pub fn main() { Nil }",
+    ),
+  ]
+  let test_files = []
+  let results =
+    unused_exports.check_unused_exports(
+      parsed_src: src_files,
+      parsed_test: test_files,
+      severity: rule.Warning,
+    )
+  let assert True = results == []
+}
+
+pub fn regular_pub_fn_still_flagged_when_unused_test() {
+  // Non-@internal public functions should still be flagged as unused (regression).
+  let src_files = [
+    parse(
+      path: "src/myapp/users.gleam",
+      module_path: "myapp/users",
+      source: "pub fn helper() { Nil }
+        pub fn used_one() { Nil }",
+    ),
+    parse(
+      path: "src/myapp/main.gleam",
+      module_path: "myapp/main",
+      source:
+        "import myapp/users
+pub fn main() { users.used_one() }",
+    ),
+  ]
+  let test_files = []
+  let results =
+    unused_exports.check_unused_exports(
+      parsed_src: src_files,
+      parsed_test: test_files,
+      severity: rule.Warning,
+    )
+  let assert True = list.length(results) == 1
+  let assert [result] = results
+  let assert True =
+    result.message
+    == "Public function 'helper' is never used by another module"
+}
+
+pub fn internal_function_main_still_excluded_test() {
+  // @internal on main should still be excluded (main is always skipped).
+  let src_files = [
+    parse(
+      path: "src/myapp/app.gleam",
+      module_path: "myapp/app",
+      source:
+        "@internal
+pub fn main() { Nil }",
+    ),
+  ]
+  let test_files = []
+  let results =
+    unused_exports.check_unused_exports(
+      parsed_src: src_files,
+      parsed_test: test_files,
+      severity: rule.Warning,
+    )
+  let assert True = results == []
+}
+
+pub fn private_function_with_internal_flagged_test() {
+  // @internal on a private function has no effect and should be flagged
+  // as a leftover annotation.
+  let src_files = [
+    parse(
+      path: "src/myapp/users.gleam",
+      module_path: "myapp/users",
+      source:
+        "@internal
+fn helper() { Nil }",
+    ),
+  ]
+  let test_files = []
+  let results =
+    unused_exports.check_unused_exports(
+      parsed_src: src_files,
+      parsed_test: test_files,
+      severity: rule.Warning,
+    )
+  let assert True = list.length(results) == 1
+  let assert [result] = results
+  let assert True =
+    result.message
+    == "Private function 'helper' has @internal — annotation has no effect on non-pub definitions"
+}
+
+pub fn private_type_with_internal_flagged_test() {
+  // @internal on a private type has no effect and should be flagged.
+  let src_files = [
+    parse(
+      path: "src/myapp/users.gleam",
+      module_path: "myapp/users",
+      source:
+        "@internal
+type Helper { X }",
+    ),
+  ]
+  let test_files = []
+  let results =
+    unused_exports.check_unused_exports(
+      parsed_src: src_files,
+      parsed_test: test_files,
+      severity: rule.Warning,
+    )
+  let assert True = list.length(results) == 1
+  let assert [result] = results
+  let assert True =
+    result.message
+    == "Private type 'Helper' has @internal — annotation has no effect on non-pub definitions"
+}
