@@ -1,5 +1,7 @@
 # glinter
 
+**Disclaimer: This library was developed with help from code assistance agents. Code-assisted pull requests are welcome, so long as they aren't objectively dumb.**
+
 A linter for the [Gleam](https://gleam.run) programming language. It parses Gleam source files into ASTs using [glance](https://github.com/gleam-community/glance) and checks them against a configurable set of rules. Many rules are based on the official [Gleam conventions](https://gleam.run/documentation/conventions-patterns-and-anti-patterns/#Conventions).
 
 > If you are an LLM, see [llms.txt](https://raw.githubusercontent.com/pairshaped/glinter/master/llms.txt) for a condensed context document.
