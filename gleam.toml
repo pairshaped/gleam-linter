@@ -9,7 +9,7 @@ links = [
 
 [dependencies]
 gleam_stdlib = ">= 0.44.0 and < 2.0.0"
-glance = ">= 6.0.0 and < 7.0.0"
+glance = ">= 6.0.0 and < 8.0.0"
 simplifile = ">= 2.0.0 and < 3.0.0"
 argv = ">= 1.0.0 and < 2.0.0"
 tom = ">= 1.0.0 and < 3.0.0"
